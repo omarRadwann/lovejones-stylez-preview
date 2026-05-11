@@ -41,6 +41,10 @@ if (loadingScreen && !prefersReducedMotion) {
     gsap.timeline({
       defaults: { ease: 'power3.out' },
       onComplete: () => {
+        gsap.set('.site-header, .hero-content > *, .hero-gallery .gallery-frame', {
+          autoAlpha: 1,
+          clearProps: 'opacity,visibility',
+        });
         loadingScreen.remove();
         document.body.classList.remove('is-loading');
       },
