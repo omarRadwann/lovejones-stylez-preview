@@ -291,6 +291,211 @@ for (let i = 0; i < foilCount; i += 1) {
 
 root.add(foilGroup);
 
+const portalGroup = new THREE.Group();
+portalGroup.position.set(1.36, 0.02, -1.35);
+portalGroup.rotation.set(THREE.MathUtils.degToRad(-2), THREE.MathUtils.degToRad(-24), THREE.MathUtils.degToRad(2));
+root.add(portalGroup);
+
+const glassMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0xf8eee3,
+  roughness: 0.18,
+  metalness: 0.08,
+  transparent: true,
+  opacity: 0.3,
+  transmission: 0.18,
+  thickness: 0.7,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+});
+
+const mirrorMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0x1b1013,
+  roughness: 0.12,
+  metalness: 0.45,
+  transparent: true,
+  opacity: 0.58,
+  side: THREE.DoubleSide,
+  depthWrite: false,
+});
+
+const goldMetalMaterial = new THREE.MeshStandardMaterial({
+  color: 0xf8d47a,
+  metalness: 0.78,
+  roughness: 0.24,
+  emissive: 0x4a2c08,
+  emissiveIntensity: 0.58,
+});
+
+const roseGlowMaterial = new THREE.MeshBasicMaterial({
+  color: 0xe66598,
+  transparent: true,
+  opacity: 0.58,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+});
+
+const portalBack = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 4.7, 1, 1), mirrorMaterial);
+portalBack.position.z = -0.08;
+portalGroup.add(portalBack);
+
+const portalGlass = new THREE.Mesh(new THREE.PlaneGeometry(2.55, 4.25, 1, 1), glassMaterial);
+portalGlass.position.z = 0.01;
+portalGroup.add(portalGlass);
+
+const frameBars = [
+  { position: [0, 2.22, 0.05], scale: [3.05, 0.12, 0.16] },
+  { position: [0, -2.22, 0.05], scale: [3.05, 0.12, 0.16] },
+  { position: [-1.48, 0, 0.05], scale: [0.12, 4.56, 0.16] },
+  { position: [1.48, 0, 0.05], scale: [0.12, 4.56, 0.16] },
+];
+
+frameBars.forEach(({ position, scale }) => {
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(...scale), goldMetalMaterial);
+  bar.position.set(...position);
+  portalGroup.add(bar);
+});
+
+const portalRing = new THREE.Mesh(new THREE.TorusGeometry(1.86, 0.018, 12, 180), roseGlowMaterial);
+portalRing.scale.y = 1.42;
+portalRing.position.z = 0.1;
+portalGroup.add(portalRing);
+
+const portalRingInner = new THREE.Mesh(
+  new THREE.TorusGeometry(1.45, 0.012, 12, 180),
+  new THREE.MeshBasicMaterial({
+    color: 0x23836f,
+    transparent: true,
+    opacity: 0.26,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  }),
+);
+portalRingInner.scale.y = 1.48;
+portalRingInner.position.z = 0.16;
+portalGroup.add(portalRingInner);
+
+const chairGroup = new THREE.Group();
+chairGroup.position.set(0.2, -1.9, 0.46);
+chairGroup.scale.setScalar(0.76);
+portalGroup.add(chairGroup);
+
+const chairMaterial = new THREE.MeshStandardMaterial({
+  color: 0x16100f,
+  roughness: 0.34,
+  metalness: 0.46,
+  emissive: 0x0d0708,
+});
+
+const chairSeat = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.72, 0.2, 42), chairMaterial);
+chairSeat.rotation.x = Math.PI / 2;
+chairGroup.add(chairSeat);
+
+const chairBack = new THREE.Mesh(new THREE.BoxGeometry(1.18, 1.18, 0.16), chairMaterial);
+chairBack.position.set(0, 0.58, -0.18);
+chairBack.rotation.x = THREE.MathUtils.degToRad(-10);
+chairGroup.add(chairBack);
+
+const chairPole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 1.1, 24), goldMetalMaterial);
+chairPole.position.set(0, -0.67, 0);
+chairGroup.add(chairPole);
+
+const chairBase = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.018, 10, 80), goldMetalMaterial);
+chairBase.position.set(0, -1.26, 0);
+chairBase.rotation.x = Math.PI / 2;
+chairGroup.add(chairBase);
+
+function createLabelTexture(label, sublabel) {
+  const textureCanvas = document.createElement('canvas');
+  textureCanvas.width = 512;
+  textureCanvas.height = 256;
+  const ctx = textureCanvas.getContext('2d');
+  ctx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+  ctx.fillStyle = 'rgba(7, 4, 4, 0.72)';
+  ctx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
+  ctx.strokeStyle = 'rgba(248, 212, 122, 0.72)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(16, 16, textureCanvas.width - 32, textureCanvas.height - 32);
+  ctx.fillStyle = '#fff8ef';
+  ctx.font = '700 54px Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, textureCanvas.width / 2, 104);
+  ctx.fillStyle = '#f8d47a';
+  ctx.font = '800 22px Inter, Arial, sans-serif';
+  ctx.fillText(sublabel, textureCanvas.width / 2, 168);
+
+  const texture = new THREE.CanvasTexture(textureCanvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
+}
+
+const orbitLabels = [
+  ['Color', 'DIMENSION'],
+  ['Locz', 'LUXURY CARE'],
+  ['Silk', 'PRESS SHINE'],
+  ['Curls', 'NATURAL STYLEZ'],
+  ['Treat', 'HEALTHY HAIR'],
+];
+
+const labelGroup = new THREE.Group();
+portalGroup.add(labelGroup);
+
+orbitLabels.forEach(([label, sublabel], index) => {
+  const texture = createLabelTexture(label, sublabel);
+  const material = new THREE.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    opacity: 0.78,
+    depthWrite: false,
+  });
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(1.04, 0.52), material);
+  panel.userData = {
+    angle: (index / orbitLabels.length) * Math.PI * 2,
+    radius: 2.15 + (index % 2) * 0.18,
+    speed: 0.12 + index * 0.012,
+    y: THREE.MathUtils.lerp(-1.32, 1.44, index / (orbitLabels.length - 1)),
+  };
+  labelGroup.add(panel);
+});
+
+const hairCurveGroup = new THREE.Group();
+root.add(hairCurveGroup);
+
+const hairCurveCount = isMobileViewport() ? 16 : 38;
+for (let i = 0; i < hairCurveCount; i += 1) {
+  const y = THREE.MathUtils.lerp(-2.7, 2.75, i / Math.max(1, hairCurveCount - 1));
+  const z = THREE.MathUtils.randFloat(-3.6, 0.8);
+  const phase = i * 0.37;
+  const points = [];
+  for (let p = 0; p < 7; p += 1) {
+    const t = p / 6;
+    points.push(new THREE.Vector3(
+      THREE.MathUtils.lerp(-7.5, 6.6, t),
+      y + Math.sin(t * Math.PI * 2 + phase) * (0.24 + (i % 5) * 0.035),
+      z + Math.cos(t * Math.PI * 1.4 + phase) * 0.42,
+    ));
+  }
+  const curve = new THREE.CatmullRomCurve3(points);
+  const tube = new THREE.Mesh(
+    new THREE.TubeGeometry(curve, 96, i % 4 === 0 ? 0.018 : 0.011, 8, false),
+    new THREE.MeshBasicMaterial({
+      color: colors[(i + 1) % colors.length],
+      transparent: true,
+      opacity: i % 4 === 0 ? 0.5 : 0.32,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }),
+  );
+  tube.userData = {
+    baseY: tube.position.y,
+    baseZ: tube.position.z,
+    phase,
+    speed: THREE.MathUtils.randFloat(0.16, 0.42),
+  };
+  hairCurveGroup.add(tube);
+}
+
 const haloMaterial = new THREE.MeshBasicMaterial({
   color: 0xf8d47a,
   transparent: true,
@@ -332,6 +537,9 @@ function resizeRenderer() {
   camera.position.z = mobile ? 10.8 : 9.4;
   camera.position.y = mobile ? -0.18 : 0.1;
   root.scale.setScalar(mobile ? 1.14 : 1);
+  portalGroup.position.set(mobile ? 0.92 : 1.36, mobile ? -0.04 : 0.02, mobile ? -2.35 : -1.35);
+  portalGroup.scale.setScalar(mobile ? 0.68 : 1.08);
+  hairCurveGroup.scale.setScalar(mobile ? 0.86 : 1);
   sparkField.material.size = mobile ? 0.026 : 0.034;
   camera.updateProjectionMatrix();
 }
@@ -379,6 +587,33 @@ function animate() {
     foil.rotation.y += foil.userData.spin * 0.011;
   });
 
+  portalGroup.rotation.y = THREE.MathUtils.lerp(
+    portalGroup.rotation.y,
+    THREE.MathUtils.degToRad((isMobileViewport() ? -12 : -24) + pointer.x * 8 + scrollState.value * 18),
+    0.035,
+  );
+  portalGroup.rotation.x = THREE.MathUtils.lerp(portalGroup.rotation.x, THREE.MathUtils.degToRad(-2 - pointer.y * 4), 0.035);
+  portalGroup.position.y = (isMobileViewport() ? -0.04 : 0.02) + Math.sin(elapsed * 0.34) * 0.08 + scrollState.value * 0.28;
+  portalRing.rotation.z = elapsed * 0.18;
+  portalRingInner.rotation.z = -elapsed * 0.14;
+  portalGlass.material.opacity = 0.28 + Math.sin(elapsed * 0.9) * 0.04;
+  chairGroup.rotation.y = Math.sin(elapsed * 0.48) * 0.16 + pointer.x * 0.08;
+  labelGroup.children.forEach((panel, index) => {
+    const data = panel.userData;
+    const angle = data.angle + elapsed * data.speed + scrollState.value * Math.PI * 1.2;
+    panel.position.set(Math.cos(angle) * data.radius, data.y + Math.sin(elapsed * 0.42 + index) * 0.08, Math.sin(angle) * 0.76 + 0.38);
+    panel.rotation.y = -portalGroup.rotation.y + Math.sin(angle) * 0.18;
+    panel.rotation.x = -portalGroup.rotation.x * 0.5;
+    panel.material.opacity = 0.42 + (Math.sin(angle) + 1) * 0.22;
+  });
+
+  hairCurveGroup.children.forEach((tube, index) => {
+    tube.position.y = tube.userData.baseY + Math.sin(elapsed * tube.userData.speed + tube.userData.phase) * 0.18;
+    tube.position.z = tube.userData.baseZ + Math.cos(elapsed * tube.userData.speed * 0.8 + tube.userData.phase) * 0.28;
+    tube.rotation.y = Math.sin(elapsed * 0.16 + index * 0.08) * 0.05 + pointer.x * 0.06;
+    tube.rotation.z = Math.cos(elapsed * 0.12 + index * 0.05) * 0.025;
+  });
+
   halo.rotation.z = elapsed * 0.11;
   halo.rotation.y = Math.sin(elapsed * 0.24) * 0.15;
   root.rotation.y = THREE.MathUtils.lerp(root.rotation.y, pointer.x * 0.12, 0.04);
@@ -398,16 +633,23 @@ ScrollTrigger.create({
   end: 'max',
   onUpdate: (self) => {
     const progress = self.progress;
+    const mobile = isMobileViewport();
     document.querySelector('.scroll-progress')?.style.setProperty('transform', `scaleX(${progress})`);
     scrollState.value = progress;
     ribbons.forEach((ribbon, index) => {
       ribbon.material.uniforms.uScroll.value = Math.sin(progress * Math.PI + index * 0.08) * 0.55;
     });
-    camera.position.x = THREE.MathUtils.lerp(camera.position.x, progress * 0.7, 0.04);
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, progress * (mobile ? 0.35 : 0.9), 0.045);
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, (mobile ? -0.18 : 0.1) + progress * 0.32, 0.045);
+    camera.position.z = THREE.MathUtils.lerp(camera.position.z, (mobile ? 10.8 : 9.4) - progress * (mobile ? 0.52 : 1.16), 0.045);
     halo.scale.setScalar(1 + progress * 0.28);
     silkVeil.material.uniforms.uScroll.value = progress;
     sparkField.material.opacity = 0.72 - progress * 0.18;
     foilGroup.rotation.z = progress * 0.08;
+    portalGroup.scale.setScalar((mobile ? 0.68 : 1.08) * (1 + progress * 0.22));
+    labelGroup.rotation.z = progress * 0.28;
+    hairCurveGroup.rotation.x = progress * 0.08;
+    hairCurveGroup.rotation.z = -progress * 0.05;
   },
 });
 
@@ -462,7 +704,7 @@ gsap.to('.hero-content', {
   ease: 'none',
   scrollTrigger: {
     trigger: '.hero-section',
-    start: '35% top',
+    start: '70% top',
     end: 'bottom top',
     scrub: true,
   },
