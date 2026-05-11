@@ -1,8 +1,5 @@
 import './styles.css';
 import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
@@ -78,19 +75,15 @@ camera.position.set(0, 0.1, 9.4);
 
 const renderer = new THREE.WebGLRenderer({
   canvas,
-  antialias: true,
-  alpha: true,
+  antialias: false,
+  alpha: false,
   powerPreference: 'high-performance',
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 0.45));
+renderer.setClearColor(0x070404, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.22;
-
-const composer = new EffectComposer(renderer);
-composer.addPass(new RenderPass(scene, camera));
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.38, 0.55, 0.05);
-composer.addPass(bloomPass);
 
 const root = new THREE.Group();
 const ribbons = [];
@@ -140,19 +133,19 @@ const colors = [
 ];
 
 function addRibbon(index) {
-  const geometry = new THREE.PlaneGeometry(16.6, index % 4 === 0 ? 0.16 : 0.09, 180, 1);
+  const geometry = new THREE.PlaneGeometry(16.6, index % 4 === 0 ? 0.1 : 0.06, 36, 1);
   const material = new THREE.ShaderMaterial({
     vertexShader: ribbonVertex,
     fragmentShader: ribbonFragment,
     uniforms: {
       uTime: { value: 0 },
       uPhase: { value: index * 0.74 },
-      uAmp: { value: 0.2 + (index % 5) * 0.045 },
-      uTwist: { value: 0.1 + (index % 4) * 0.035 },
+      uAmp: { value: 0.12 + (index % 5) * 0.026 },
+      uTwist: { value: 0.05 + (index % 4) * 0.02 },
       uSpeed: { value: 0.72 + (index % 7) * 0.09 },
       uScroll: { value: 0 },
       uColor: { value: colors[index % colors.length] },
-      uAlpha: { value: index % 4 === 0 ? 0.82 : 0.55 },
+      uAlpha: { value: index % 4 === 0 ? 0.22 : 0.13 },
     },
     transparent: true,
     depthWrite: false,
@@ -178,7 +171,8 @@ function addRibbon(index) {
   ribbons.push(mesh);
 }
 
-for (let i = 0; i < 30; i += 1) addRibbon(i);
+const ribbonCount = isMobileViewport() ? 0 : 2;
+for (let i = 0; i < ribbonCount; i += 1) addRibbon(i);
 
 const veilMaterial = new THREE.ShaderMaterial({
   vertexShader: `
@@ -209,7 +203,7 @@ const veilMaterial = new THREE.ShaderMaterial({
       vec3 color = mix(rose, gold, vUv.x);
       color = mix(color, green, smoothstep(0.5, 1.0, vUv.y) * 0.35);
       float vignette = smoothstep(0.02, 0.42, vUv.x) * smoothstep(0.98, 0.58, vUv.x);
-      float alpha = silk * vignette * 0.18;
+      float alpha = silk * vignette * 0.045;
       gl_FragColor = vec4(color, alpha);
     }
   `,
@@ -223,12 +217,12 @@ const veilMaterial = new THREE.ShaderMaterial({
   blending: THREE.AdditiveBlending,
 });
 
-const silkVeil = new THREE.Mesh(new THREE.PlaneGeometry(15.8, 9.4, 96, 36), veilMaterial);
+const silkVeil = new THREE.Mesh(new THREE.PlaneGeometry(15.8, 9.4, 24, 10), veilMaterial);
 silkVeil.position.set(0.6, -0.2, -4.8);
 silkVeil.rotation.set(THREE.MathUtils.degToRad(-6), THREE.MathUtils.degToRad(0), THREE.MathUtils.degToRad(-7));
 root.add(silkVeil);
 
-const sparkCount = isMobileViewport() ? 140 : 340;
+const sparkCount = isMobileViewport() ? 12 : 24;
 const sparkPositions = new Float32Array(sparkCount * 3);
 const sparkColors = new Float32Array(sparkCount * 3);
 const sparkBase = [];
@@ -265,7 +259,7 @@ const sparkField = new THREE.Points(
 scene.add(sparkField);
 
 const foilGroup = new THREE.Group();
-const foilCount = isMobileViewport() ? 12 : 30;
+const foilCount = isMobileViewport() ? 3 : 6;
 const foilGeometry = new THREE.CircleGeometry(0.055, 3);
 
 for (let i = 0; i < foilCount; i += 1) {
@@ -300,24 +294,22 @@ portalGroup.position.set(1.36, 0.02, -1.35);
 portalGroup.rotation.set(THREE.MathUtils.degToRad(-2), THREE.MathUtils.degToRad(-24), THREE.MathUtils.degToRad(2));
 root.add(portalGroup);
 
-const glassMaterial = new THREE.MeshPhysicalMaterial({
+const glassMaterial = new THREE.MeshStandardMaterial({
   color: 0xf8eee3,
-  roughness: 0.18,
-  metalness: 0.08,
+  roughness: 0.34,
+  metalness: 0.16,
   transparent: true,
-  opacity: 0.3,
-  transmission: 0.18,
-  thickness: 0.7,
+  opacity: 0.24,
   side: THREE.DoubleSide,
   depthWrite: false,
 });
 
-const mirrorMaterial = new THREE.MeshPhysicalMaterial({
+const mirrorMaterial = new THREE.MeshStandardMaterial({
   color: 0x1b1013,
-  roughness: 0.12,
-  metalness: 0.45,
+  roughness: 0.3,
+  metalness: 0.32,
   transparent: true,
-  opacity: 0.58,
+  opacity: 0.48,
   side: THREE.DoubleSide,
   depthWrite: false,
 });
@@ -359,13 +351,13 @@ frameBars.forEach(({ position, scale }) => {
   portalGroup.add(bar);
 });
 
-const portalRing = new THREE.Mesh(new THREE.TorusGeometry(1.86, 0.018, 12, 180), roseGlowMaterial);
+const portalRing = new THREE.Mesh(new THREE.TorusGeometry(1.86, 0.018, 8, 96), roseGlowMaterial);
 portalRing.scale.y = 1.42;
 portalRing.position.z = 0.1;
 portalGroup.add(portalRing);
 
 const portalRingInner = new THREE.Mesh(
-  new THREE.TorusGeometry(1.45, 0.012, 12, 180),
+  new THREE.TorusGeometry(1.45, 0.012, 8, 96),
   new THREE.MeshBasicMaterial({
     color: 0x23836f,
     transparent: true,
@@ -390,7 +382,7 @@ const chairMaterial = new THREE.MeshStandardMaterial({
   emissive: 0x0d0708,
 });
 
-const chairSeat = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.72, 0.2, 42), chairMaterial);
+const chairSeat = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.72, 0.2, 24), chairMaterial);
 chairSeat.rotation.x = Math.PI / 2;
 chairGroup.add(chairSeat);
 
@@ -399,34 +391,34 @@ chairBack.position.set(0, 0.58, -0.18);
 chairBack.rotation.x = THREE.MathUtils.degToRad(-10);
 chairGroup.add(chairBack);
 
-const chairPole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 1.1, 24), goldMetalMaterial);
+const chairPole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 1.1, 14), goldMetalMaterial);
 chairPole.position.set(0, -0.67, 0);
 chairGroup.add(chairPole);
 
-const chairBase = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.018, 10, 80), goldMetalMaterial);
+const chairBase = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.018, 8, 48), goldMetalMaterial);
 chairBase.position.set(0, -1.26, 0);
 chairBase.rotation.x = Math.PI / 2;
 chairGroup.add(chairBase);
 
 function createLabelTexture(label, sublabel) {
   const textureCanvas = document.createElement('canvas');
-  textureCanvas.width = 512;
-  textureCanvas.height = 256;
+  textureCanvas.width = 256;
+  textureCanvas.height = 128;
   const ctx = textureCanvas.getContext('2d');
   ctx.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
   ctx.fillStyle = 'rgba(7, 4, 4, 0.72)';
   ctx.fillRect(0, 0, textureCanvas.width, textureCanvas.height);
   ctx.strokeStyle = 'rgba(248, 212, 122, 0.72)';
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 2;
   ctx.strokeRect(16, 16, textureCanvas.width - 32, textureCanvas.height - 32);
   ctx.fillStyle = '#fff8ef';
-  ctx.font = '700 54px Georgia, serif';
+  ctx.font = '700 28px Georgia, serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(label, textureCanvas.width / 2, 104);
+  ctx.fillText(label, textureCanvas.width / 2, 52);
   ctx.fillStyle = '#f8d47a';
-  ctx.font = '800 22px Inter, Arial, sans-serif';
-  ctx.fillText(sublabel, textureCanvas.width / 2, 168);
+  ctx.font = '800 12px Inter, Arial, sans-serif';
+  ctx.fillText(sublabel, textureCanvas.width / 2, 84);
 
   const texture = new THREE.CanvasTexture(textureCanvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -438,8 +430,6 @@ const orbitLabels = [
   ['Color', 'DIMENSION'],
   ['Locz', 'LUXURY CARE'],
   ['Silk', 'PRESS SHINE'],
-  ['Curls', 'NATURAL STYLEZ'],
-  ['Treat', 'HEALTHY HAIR'],
 ];
 
 const labelGroup = new THREE.Group();
@@ -466,7 +456,7 @@ orbitLabels.forEach(([label, sublabel], index) => {
 const hairCurveGroup = new THREE.Group();
 root.add(hairCurveGroup);
 
-const hairCurveCount = isMobileViewport() ? 16 : 38;
+const hairCurveCount = isMobileViewport() ? 2 : 3;
 for (let i = 0; i < hairCurveCount; i += 1) {
   const y = THREE.MathUtils.lerp(-2.7, 2.75, i / Math.max(1, hairCurveCount - 1));
   const z = THREE.MathUtils.randFloat(-3.6, 0.8);
@@ -482,11 +472,11 @@ for (let i = 0; i < hairCurveCount; i += 1) {
   }
   const curve = new THREE.CatmullRomCurve3(points);
   const tube = new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 96, i % 4 === 0 ? 0.018 : 0.011, 8, false),
+    new THREE.TubeGeometry(curve, 24, i % 4 === 0 ? 0.01 : 0.006, 4, false),
     new THREE.MeshBasicMaterial({
       color: colors[(i + 1) % colors.length],
       transparent: true,
-      opacity: i % 4 === 0 ? 0.5 : 0.32,
+      opacity: i % 4 === 0 ? 0.28 : 0.18,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     }),
@@ -508,8 +498,8 @@ const haloMaterial = new THREE.MeshBasicMaterial({
 });
 
 const halo = new THREE.Group();
-for (let i = 0; i < 6; i += 1) {
-  const arc = new THREE.Mesh(new THREE.TorusGeometry(1.15 + i * 0.29, 0.009, 8, 160, Math.PI * 1.45), haloMaterial);
+for (let i = 0; i < 3; i += 1) {
+  const arc = new THREE.Mesh(new THREE.TorusGeometry(1.15 + i * 0.29, 0.008, 6, 72, Math.PI * 1.45), haloMaterial);
   arc.position.set(3.35, -0.2, -1.6 - i * 0.15);
   arc.rotation.set(THREE.MathUtils.degToRad(78), THREE.MathUtils.degToRad(14), THREE.MathUtils.degToRad(36 + i * 17));
   halo.add(arc);
@@ -533,11 +523,12 @@ scene.add(greenLight);
 function resizeRenderer() {
   const { innerWidth, innerHeight } = window;
   const mobile = isMobileViewport();
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.35 : 1.75));
-  renderer.setSize(innerWidth, innerHeight, false);
-  composer.setSize(innerWidth, innerHeight);
-  bloomPass.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth / innerHeight;
+  const bounds = canvas.getBoundingClientRect();
+  const renderWidth = Math.max(1, Math.round(bounds.width || innerWidth));
+  const renderHeight = Math.max(1, Math.round(bounds.height || innerHeight));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 0.62 : 0.45));
+  renderer.setSize(renderWidth, renderHeight, false);
+  camera.aspect = renderWidth / renderHeight;
   camera.position.z = mobile ? 10.8 : 9.4;
   camera.position.y = mobile ? -0.18 : 0.1;
   root.scale.setScalar(mobile ? 1.14 : 1);
@@ -553,6 +544,7 @@ resizeRenderer();
 
 const pointer = new THREE.Vector2(0, 0);
 window.addEventListener('pointermove', (event) => {
+  wakeScene(1400);
   pointer.x = (event.clientX / window.innerWidth - 0.5) * 2;
   pointer.y = (event.clientY / window.innerHeight - 0.5) * 2;
   document.documentElement.style.setProperty('--spot-x', `${(event.clientX / window.innerWidth) * 100}%`);
@@ -561,8 +553,14 @@ window.addEventListener('pointermove', (event) => {
 
 const scrollState = { value: 0 };
 const clock = new THREE.Clock();
+let activeUntil = performance.now() + 3600;
+
+function wakeScene(duration = 1200) {
+  activeUntil = Math.max(activeUntil, performance.now() + duration);
+}
 
 function animate() {
+  const isActive = performance.now() < activeUntil;
   const elapsed = clock.getElapsedTime();
 
   ribbons.forEach((ribbon, index) => {
@@ -573,16 +571,9 @@ function animate() {
   silkVeil.material.uniforms.uTime.value = elapsed;
   silkVeil.rotation.z = THREE.MathUtils.degToRad(-7 + Math.sin(elapsed * 0.16) * 1.8);
 
-  const sparkPositionAttribute = sparkGeometry.getAttribute('position');
-  for (let i = 0; i < sparkCount; i += 1) {
-    const base = sparkBase[i];
-    sparkPositionAttribute.array[i * 3] = base.x + Math.sin(elapsed * base.speed + base.phase) * 0.18;
-    sparkPositionAttribute.array[i * 3 + 1] = base.y + Math.cos(elapsed * base.speed * 1.25 + base.phase) * 0.14 + scrollState.value * 1.4;
-    sparkPositionAttribute.array[i * 3 + 2] = base.z + Math.sin(elapsed * base.speed * 0.78 + base.phase) * 0.2;
-  }
-  sparkPositionAttribute.needsUpdate = true;
-  sparkField.rotation.y = elapsed * 0.018 + pointer.x * 0.04;
+  sparkField.rotation.y = elapsed * 0.024 + pointer.x * 0.04;
   sparkField.rotation.x = pointer.y * 0.025;
+  sparkField.position.y = scrollState.value * 0.8 + Math.sin(elapsed * 0.2) * 0.08;
 
   foilGroup.children.forEach((foil) => {
     foil.position.x = foil.userData.baseX + Math.sin(elapsed * foil.userData.drift + foil.userData.phase) * 0.26;
@@ -626,8 +617,8 @@ function animate() {
   goldLight.intensity = 17 + Math.cos(elapsed * 0.65) * 2.4;
   greenLight.intensity = 9 + Math.sin(elapsed * 0.52) * 1.8;
 
-  composer.render();
-  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+  window.setTimeout(() => requestAnimationFrame(animate), isActive ? 1000 / 18 : 1000 / 3);
 }
 
 animate();
@@ -636,6 +627,7 @@ ScrollTrigger.create({
   start: 0,
   end: 'max',
   onUpdate: (self) => {
+    wakeScene(900);
     const progress = self.progress;
     const mobile = isMobileViewport();
     document.querySelector('.scroll-progress')?.style.setProperty('transform', `scaleX(${progress})`);
@@ -808,7 +800,6 @@ motionContext.add('(min-width: 1081px)', () => {
     onUpdate: (self) => {
       const activeIndex = Math.min(craftSteps.length - 1, Math.floor(self.progress * craftSteps.length));
       craftSteps.forEach((step, index) => step.classList.toggle('is-active', index === activeIndex));
-      bloomPass.strength = 0.32 + self.progress * 0.38;
     },
   });
 });

@@ -111,7 +111,7 @@ body.is-loading {
 }
 
 .grain-layer {
-  opacity: 0.13;
+  opacity: 0.08;
   mix-blend-mode: soft-light;
   background-image:
     repeating-radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.34) 0 1px, transparent 1px 7px),
@@ -285,15 +285,17 @@ section {
   content: "";
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(7, 4, 4, 0.86) 0%, rgba(7, 4, 4, 0.66) 34%, rgba(7, 4, 4, 0.18) 64%, transparent 100%),
-    radial-gradient(circle at 18% 55%, rgba(7, 4, 4, 0.66), transparent 38%);
+    linear-gradient(90deg, rgba(7, 4, 4, 0.94) 0%, rgba(7, 4, 4, 0.78) 36%, rgba(7, 4, 4, 0.3) 68%, rgba(7, 4, 4, 0.08) 100%),
+    radial-gradient(circle at 20% 55%, rgba(7, 4, 4, 0.76), transparent 42%);
 }
 
 #salon-scene {
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
   z-index: -1;
-  width: 100%;
+  width: min(62vw, 940px);
   height: 100%;
   pointer-events: none;
 }
@@ -311,7 +313,7 @@ section {
   position: absolute;
   inset: -22%;
   z-index: -2;
-  opacity: 0.34;
+  opacity: 0.16;
   background: linear-gradient(110deg, transparent 0 38%, rgba(255, 248, 239, 0.2) 45%, transparent 54% 100%);
   transform: translateX(-34%) rotate(8deg);
   animation: light-sweep 4.8s ease-in-out infinite;
@@ -324,7 +326,8 @@ section {
   right: clamp(24px, 6vw, 88px);
   width: min(42vw, 610px);
   height: min(62vh, 620px);
-  opacity: 0.82;
+  display: none;
+  opacity: 0;
   pointer-events: none;
 }
 
@@ -355,7 +358,7 @@ section {
 .owner-frame {
   width: 42%;
   height: 72%;
-  left: 5%;
+  left: 0;
   top: 7%;
   animation: image-float-a 5.4s ease-in-out infinite;
 }
@@ -363,7 +366,7 @@ section {
 .result-frame {
   width: 58%;
   height: 48%;
-  right: 0;
+  right: -8%;
   top: 0;
   animation: image-float-b 6.2s ease-in-out infinite;
 }
@@ -371,7 +374,7 @@ section {
 .texture-frame {
   width: 50%;
   height: 42%;
-  right: 12%;
+  right: 0;
   bottom: 4%;
   animation: image-float-c 5.8s ease-in-out infinite;
 }
@@ -412,7 +415,7 @@ h1 {
   margin-bottom: 24px;
   max-width: 9.4ch;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: clamp(4.4rem, 10vw, 10rem);
+  font-size: clamp(4.2rem, 9.3vw, 9.2rem);
   line-height: 0.76;
   letter-spacing: 0;
 }
@@ -434,7 +437,7 @@ h1 span:nth-child(3) {
 .hero-copy {
   max-width: 680px;
   margin-bottom: 30px;
-  color: rgba(255, 248, 239, 0.86);
+  color: rgba(255, 248, 239, 0.9);
   font-size: clamp(1.06rem, 1.45vw, 1.28rem);
   line-height: 1.58;
   animation: rise-in 900ms 360ms ease both;
@@ -1407,6 +1410,11 @@ h2 {
   .hero-section {
     min-height: 88svh;
     padding: 94px 18px 116px;
+  }
+
+  #salon-scene {
+    left: 0;
+    width: 100%;
   }
 
   .hero-section::before {
