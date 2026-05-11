@@ -9,15 +9,61 @@ import Lenis from 'lenis';
 
 gsap.registerPlugin(ScrollTrigger);
 
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const finePointer = window.matchMedia('(pointer: fine)').matches;
+const isMobileViewport = () => window.innerWidth < 720;
+
+if (!prefersReducedMotion) {
+  document.body.classList.add('is-loading');
+}
+
 const lenis = new Lenis({
-  duration: 1.12,
-  smoothWheel: true,
-  wheelMultiplier: 0.92,
+  duration: prefersReducedMotion ? 0.01 : 1.34,
+  easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
+  smoothWheel: !prefersReducedMotion,
+  wheelMultiplier: 0.86,
+  touchMultiplier: 1.08,
 });
 
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => lenis.raf(time * 1000));
 gsap.ticker.lagSmoothing(0);
+
+const loadingScreen = document.querySelector('.loading-screen');
+let loaderComplete = false;
+
+if (loadingScreen && !prefersReducedMotion) {
+  gsap.to('.loading-line span', { scaleX: 0.86, duration: 1.2, ease: 'power2.out' });
+  const finishLoader = () => {
+    if (loaderComplete) return;
+    loaderComplete = true;
+
+    gsap.timeline({
+      defaults: { ease: 'power3.out' },
+      onComplete: () => {
+        loadingScreen.remove();
+        document.body.classList.remove('is-loading');
+      },
+    })
+      .to('.loading-line span', { scaleX: 1, duration: 0.28 })
+      .to('.loading-mark span', { y: -10, autoAlpha: 0, duration: 0.46 }, 0.08)
+      .to('.loading-mark strong', { y: 18, autoAlpha: 0, duration: 0.46 }, 0.12)
+      .to(loadingScreen, { clipPath: 'inset(0 0 100% 0)', duration: 0.72 }, 0.22)
+      .from('.site-header', { y: -18, autoAlpha: 0, duration: 0.8 }, 0.46)
+      .from('.hero-content > *', { y: 56, autoAlpha: 0, stagger: 0.08, duration: 0.9 }, 0.48)
+      .from('.hero-gallery .gallery-frame', { y: 46, rotateZ: -4, autoAlpha: 0, stagger: 0.08, duration: 0.9 }, 0.58);
+  };
+
+  if (document.readyState === 'complete') {
+    window.setTimeout(finishLoader, 360);
+  } else {
+    window.addEventListener('load', finishLoader, { once: true });
+    window.setTimeout(finishLoader, 2300);
+  }
+} else {
+  loadingScreen?.remove();
+  document.body.classList.remove('is-loading');
+}
 
 const canvas = document.querySelector('#salon-scene');
 const scene = new THREE.Scene();
@@ -130,6 +176,121 @@ function addRibbon(index) {
 
 for (let i = 0; i < 30; i += 1) addRibbon(i);
 
+const veilMaterial = new THREE.ShaderMaterial({
+  vertexShader: `
+    varying vec2 vUv;
+    uniform float uTime;
+    uniform float uScroll;
+
+    void main() {
+      vUv = uv;
+      vec3 pos = position;
+      pos.z += sin(pos.x * 0.55 + uTime * 0.5) * 0.16;
+      pos.y += sin(pos.x * 0.36 + uTime * 0.38 + uScroll * 2.0) * 0.18;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform float uTime;
+    uniform float uScroll;
+
+    void main() {
+      float lineA = sin((vUv.x * 16.0) + (vUv.y * 3.5) + uTime * 0.75 + uScroll * 2.0);
+      float lineB = sin((vUv.x * 7.0) - (vUv.y * 12.0) - uTime * 0.48);
+      float silk = smoothstep(0.48, 0.98, lineA * 0.5 + lineB * 0.28 + 0.58);
+      vec3 rose = vec3(0.902, 0.396, 0.596);
+      vec3 gold = vec3(0.972, 0.831, 0.478);
+      vec3 green = vec3(0.137, 0.514, 0.435);
+      vec3 color = mix(rose, gold, vUv.x);
+      color = mix(color, green, smoothstep(0.5, 1.0, vUv.y) * 0.35);
+      float vignette = smoothstep(0.02, 0.42, vUv.x) * smoothstep(0.98, 0.58, vUv.x);
+      float alpha = silk * vignette * 0.18;
+      gl_FragColor = vec4(color, alpha);
+    }
+  `,
+  uniforms: {
+    uTime: { value: 0 },
+    uScroll: { value: 0 },
+  },
+  transparent: true,
+  depthWrite: false,
+  side: THREE.DoubleSide,
+  blending: THREE.AdditiveBlending,
+});
+
+const silkVeil = new THREE.Mesh(new THREE.PlaneGeometry(15.8, 9.4, 96, 36), veilMaterial);
+silkVeil.position.set(0.6, -0.2, -4.8);
+silkVeil.rotation.set(THREE.MathUtils.degToRad(-6), THREE.MathUtils.degToRad(0), THREE.MathUtils.degToRad(-7));
+root.add(silkVeil);
+
+const sparkCount = isMobileViewport() ? 140 : 340;
+const sparkPositions = new Float32Array(sparkCount * 3);
+const sparkColors = new Float32Array(sparkCount * 3);
+const sparkBase = [];
+
+for (let i = 0; i < sparkCount; i += 1) {
+  const color = colors[i % colors.length];
+  const x = THREE.MathUtils.randFloatSpread(12.5);
+  const y = THREE.MathUtils.randFloat(-4.2, 4.5);
+  const z = THREE.MathUtils.randFloat(-6.4, 1.8);
+  sparkBase.push({ x, y, z, speed: THREE.MathUtils.randFloat(0.12, 0.42), phase: Math.random() * Math.PI * 2 });
+  sparkPositions[i * 3] = x;
+  sparkPositions[i * 3 + 1] = y;
+  sparkPositions[i * 3 + 2] = z;
+  sparkColors[i * 3] = color.r;
+  sparkColors[i * 3 + 1] = color.g;
+  sparkColors[i * 3 + 2] = color.b;
+}
+
+const sparkGeometry = new THREE.BufferGeometry();
+sparkGeometry.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
+sparkGeometry.setAttribute('color', new THREE.BufferAttribute(sparkColors, 3));
+
+const sparkField = new THREE.Points(
+  sparkGeometry,
+  new THREE.PointsMaterial({
+    size: isMobileViewport() ? 0.026 : 0.034,
+    transparent: true,
+    opacity: 0.72,
+    vertexColors: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  }),
+);
+scene.add(sparkField);
+
+const foilGroup = new THREE.Group();
+const foilCount = isMobileViewport() ? 12 : 30;
+const foilGeometry = new THREE.CircleGeometry(0.055, 3);
+
+for (let i = 0; i < foilCount; i += 1) {
+  const foil = new THREE.Mesh(
+    foilGeometry,
+    new THREE.MeshBasicMaterial({
+      color: colors[(i + 2) % colors.length],
+      transparent: true,
+      opacity: 0.34,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    }),
+  );
+  foil.position.set(THREE.MathUtils.randFloatSpread(11.5), THREE.MathUtils.randFloat(-3.6, 3.8), THREE.MathUtils.randFloat(-5.6, 1.4));
+  foil.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+  foil.scale.setScalar(THREE.MathUtils.randFloat(0.8, 2.8));
+  foil.userData = {
+    baseY: foil.position.y,
+    baseX: foil.position.x,
+    spin: THREE.MathUtils.randFloat(0.16, 0.55),
+    drift: THREE.MathUtils.randFloat(0.05, 0.18),
+    phase: Math.random() * Math.PI * 2,
+  };
+  foilGroup.add(foil);
+}
+
+root.add(foilGroup);
+
 const haloMaterial = new THREE.MeshBasicMaterial({
   color: 0xf8d47a,
   transparent: true,
@@ -162,13 +323,16 @@ scene.add(greenLight);
 
 function resizeRenderer() {
   const { innerWidth, innerHeight } = window;
+  const mobile = isMobileViewport();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.35 : 1.75));
   renderer.setSize(innerWidth, innerHeight, false);
   composer.setSize(innerWidth, innerHeight);
   bloomPass.setSize(innerWidth, innerHeight);
   camera.aspect = innerWidth / innerHeight;
-  camera.position.z = innerWidth < 720 ? 10.8 : 9.4;
-  camera.position.y = innerWidth < 720 ? -0.18 : 0.1;
-  root.scale.setScalar(innerWidth < 720 ? 1.14 : 1);
+  camera.position.z = mobile ? 10.8 : 9.4;
+  camera.position.y = mobile ? -0.18 : 0.1;
+  root.scale.setScalar(mobile ? 1.14 : 1);
+  sparkField.material.size = mobile ? 0.026 : 0.034;
   camera.updateProjectionMatrix();
 }
 
@@ -179,8 +343,11 @@ const pointer = new THREE.Vector2(0, 0);
 window.addEventListener('pointermove', (event) => {
   pointer.x = (event.clientX / window.innerWidth - 0.5) * 2;
   pointer.y = (event.clientY / window.innerHeight - 0.5) * 2;
+  document.documentElement.style.setProperty('--spot-x', `${(event.clientX / window.innerWidth) * 100}%`);
+  document.documentElement.style.setProperty('--spot-y', `${(event.clientY / window.innerHeight) * 100}%`);
 });
 
+const scrollState = { value: 0 };
 const clock = new THREE.Clock();
 
 function animate() {
@@ -191,10 +358,34 @@ function animate() {
     ribbon.position.y = ribbon.userData.baseY + Math.sin(elapsed * ribbon.userData.floatSpeed + index) * ribbon.userData.floatAmp;
   });
 
+  silkVeil.material.uniforms.uTime.value = elapsed;
+  silkVeil.rotation.z = THREE.MathUtils.degToRad(-7 + Math.sin(elapsed * 0.16) * 1.8);
+
+  const sparkPositionAttribute = sparkGeometry.getAttribute('position');
+  for (let i = 0; i < sparkCount; i += 1) {
+    const base = sparkBase[i];
+    sparkPositionAttribute.array[i * 3] = base.x + Math.sin(elapsed * base.speed + base.phase) * 0.18;
+    sparkPositionAttribute.array[i * 3 + 1] = base.y + Math.cos(elapsed * base.speed * 1.25 + base.phase) * 0.14 + scrollState.value * 1.4;
+    sparkPositionAttribute.array[i * 3 + 2] = base.z + Math.sin(elapsed * base.speed * 0.78 + base.phase) * 0.2;
+  }
+  sparkPositionAttribute.needsUpdate = true;
+  sparkField.rotation.y = elapsed * 0.018 + pointer.x * 0.04;
+  sparkField.rotation.x = pointer.y * 0.025;
+
+  foilGroup.children.forEach((foil) => {
+    foil.position.x = foil.userData.baseX + Math.sin(elapsed * foil.userData.drift + foil.userData.phase) * 0.26;
+    foil.position.y = foil.userData.baseY + Math.cos(elapsed * foil.userData.drift * 1.4 + foil.userData.phase) * 0.22 + scrollState.value * 0.5;
+    foil.rotation.x += foil.userData.spin * 0.008;
+    foil.rotation.y += foil.userData.spin * 0.011;
+  });
+
   halo.rotation.z = elapsed * 0.11;
   halo.rotation.y = Math.sin(elapsed * 0.24) * 0.15;
   root.rotation.y = THREE.MathUtils.lerp(root.rotation.y, pointer.x * 0.12, 0.04);
   root.rotation.x = THREE.MathUtils.lerp(root.rotation.x, -pointer.y * 0.08, 0.04);
+  roseLight.intensity = 22 + Math.sin(elapsed * 0.8) * 3;
+  goldLight.intensity = 17 + Math.cos(elapsed * 0.65) * 2.4;
+  greenLight.intensity = 9 + Math.sin(elapsed * 0.52) * 1.8;
 
   composer.render();
   requestAnimationFrame(animate);
@@ -202,7 +393,6 @@ function animate() {
 
 animate();
 
-const scrollState = { value: 0 };
 ScrollTrigger.create({
   start: 0,
   end: 'max',
@@ -215,6 +405,9 @@ ScrollTrigger.create({
     });
     camera.position.x = THREE.MathUtils.lerp(camera.position.x, progress * 0.7, 0.04);
     halo.scale.setScalar(1 + progress * 0.28);
+    silkVeil.material.uniforms.uScroll.value = progress;
+    sparkField.material.opacity = 0.72 - progress * 0.18;
+    foilGroup.rotation.z = progress * 0.08;
   },
 });
 
@@ -275,6 +468,73 @@ gsap.to('.hero-content', {
   },
 });
 
+gsap.utils.toArray('.section-heading h2').forEach((heading) => {
+  gsap.fromTo(heading,
+    { clipPath: 'inset(0 0 100% 0)', y: 34 },
+    {
+      clipPath: 'inset(0 0 0% 0)',
+      y: 0,
+      duration: 1.05,
+      ease: 'power4.out',
+      scrollTrigger: {
+        trigger: heading,
+        start: 'top 82%',
+        toggleActions: 'play none none none',
+      },
+    });
+});
+
+gsap.utils.toArray('.story-portrait, .cinema-frame, .owner-card img').forEach((node) => {
+  gsap.fromTo(node,
+    { clipPath: 'inset(12% 0 12% 0)', scale: 0.98 },
+    {
+      clipPath: 'inset(0% 0 0% 0)',
+      scale: 1,
+      duration: 1.1,
+      ease: 'power4.out',
+      scrollTrigger: {
+        trigger: node,
+        start: 'top 86%',
+        toggleActions: 'play none none none',
+      },
+    });
+});
+
+gsap.utils.toArray('.gallery-frame img, .cinema-frame img, .story-portrait img, .owner-card img').forEach((image) => {
+  gsap.fromTo(image,
+    { yPercent: -5, scale: 1.12 },
+    {
+      yPercent: 5,
+      scale: 1.04,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: image.closest('section') || image,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true,
+      },
+    });
+});
+
+gsap.utils.toArray('.service-card, .menu-card, .team-grid article, .policy-grid article, .storyboard article').forEach((card, index) => {
+  gsap.fromTo(card,
+    { y: 44, rotateX: 4, autoAlpha: 0, filter: 'blur(8px)' },
+    {
+      y: 0,
+      rotateX: 0,
+      autoAlpha: 1,
+      filter: 'blur(0px)',
+      duration: 0.9,
+      delay: (index % 4) * 0.035,
+      ease: 'power3.out',
+      scrollTrigger: {
+        trigger: card,
+        start: 'top 88%',
+        toggleActions: 'play none none none',
+      },
+    });
+});
+
 const motionContext = gsap.matchMedia();
 motionContext.add('(min-width: 1081px)', () => {
   const craftSteps = gsap.utils.toArray('.craft-step');
@@ -308,16 +568,43 @@ motionContext.add('(min-width: 1081px)', () => {
 });
 
 const cursor = document.querySelector('.cursor-ring');
-if (cursor && window.matchMedia('(pointer: fine)').matches) {
+if (cursor && finePointer && !prefersReducedMotion) {
+  const moveCursorX = gsap.quickTo(cursor, 'x', { duration: 0.18, ease: 'power3.out' });
+  const moveCursorY = gsap.quickTo(cursor, 'y', { duration: 0.18, ease: 'power3.out' });
+
   window.addEventListener('pointermove', (event) => {
-    gsap.to(cursor, { x: event.clientX, y: event.clientY, autoAlpha: 1, duration: 0.18, ease: 'power3.out' });
+    moveCursorX(event.clientX);
+    moveCursorY(event.clientY);
+    gsap.to(cursor, { autoAlpha: 1, duration: 0.18, overwrite: true });
   });
 
-  document.querySelectorAll('a, .service-card, .menu-card, .craft-step').forEach((node) => {
+  document.querySelectorAll('a, .service-card, .menu-card, .craft-step, .storyboard article, .team-grid article').forEach((node) => {
     node.addEventListener('pointerenter', () => cursor.classList.add('is-active'));
     node.addEventListener('pointerleave', () => cursor.classList.remove('is-active'));
   });
 }
+
+const litCards = document.querySelectorAll('.service-card, .menu-card, .team-grid article, .policy-grid article, .storyboard article, .hours-board div');
+litCards.forEach((card) => {
+  card.addEventListener('pointermove', (event) => {
+    const rect = card.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    card.style.setProperty('--mx', `${(x / rect.width) * 100}%`);
+    card.style.setProperty('--my', `${(y / rect.height) * 100}%`);
+
+    if (!finePointer || prefersReducedMotion) return;
+    const rotateX = ((y / rect.height) - 0.5) * -5;
+    const rotateY = ((x / rect.width) - 0.5) * 5;
+    card.classList.add('is-lit');
+    gsap.to(card, { rotateX, rotateY, z: 16, duration: 0.32, ease: 'power3.out', overwrite: true });
+  });
+
+  card.addEventListener('pointerleave', () => {
+    card.classList.remove('is-lit');
+    gsap.to(card, { rotateX: 0, rotateY: 0, z: 0, duration: 0.48, ease: 'elastic.out(1, 0.55)', overwrite: true });
+  });
+});
 
 document.querySelectorAll('[data-magnetic]').forEach((node) => {
   node.addEventListener('pointermove', (event) => {
