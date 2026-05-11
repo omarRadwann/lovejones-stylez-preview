@@ -9,13 +9,21 @@
       content="Private website and campaign concept for Love Jones Stylez, a Raleigh hair salon."
     />
     <title>Love Jones Stylez | Private Redesign Concept</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,300..900,30..100,0..1&family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="app">
       <div class="loading-screen" aria-hidden="true">
+        <div class="loading-letterbox"><i></i><i></i></div>
         <div class="loading-mark">
           <span>LJ</span>
           <strong>Love Jones Stylez</strong>
+          <em>A cinematic salon concept</em>
         </div>
         <div class="loading-line"><span></span></div>
       </div>
@@ -31,6 +39,7 @@
         <nav class="nav-links" aria-label="Page sections">
           <a href="#story">Story</a>
           <a href="#craft">Craft</a>
+          <a href="#reel">Reel</a>
           <a href="#services">Services</a>
           <a href="#menu">Menu</a>
           <a href="#visit">Visit</a>
@@ -85,6 +94,11 @@
                 Book consultation
               </a>
               <a class="button button-secondary" data-magnetic href="#video">See campaign reel</a>
+            </div>
+            <div class="hero-beats" aria-label="Client journey">
+              <span class="is-active">Consultation</span>
+              <span>Care plan</span>
+              <span>Mirror reveal</span>
             </div>
           </div>
 
@@ -169,7 +183,7 @@
         <section class="craft-section" id="craft" aria-labelledby="craft-title">
           <div class="craft-pin">
             <div class="craft-copy">
-              <p class="section-kicker">Awwwards-style direction</p>
+              <p class="section-kicker">Experience direction</p>
               <h2 id="craft-title">Turn a service list into a cinematic client journey.</h2>
               <div class="craft-steps" aria-label="Experience steps">
                 <article class="craft-step is-active" data-step="0">
@@ -422,6 +436,120 @@
               <span>05</span>
               <p>Prices are non-negotiable.</p>
             </article>
+          </div>
+        </section>
+
+        <section class="reel-section" id="reel" aria-labelledby="reel-title">
+          <div class="reel-heading" data-reveal>
+            <p class="section-kicker">AI cinema reel</p>
+            <h2 id="reel-title">A cinematic look book, generated for Love Jones Stylez.</h2>
+            <p>
+              Four short reels rendered with Higgsfield camera moves &mdash; Cinema Studio, Soul,
+              Seedance, and Kling &mdash; each one a 9:16 vertical clip ready for Instagram, TikTok,
+              and the salon's site hero.
+            </p>
+          </div>
+          <div class="reel-grid" aria-label="Higgsfield reels">
+            <article class="reel-card" data-reveal data-reel-preset="Cinema Studio">
+              <div class="reel-frame">
+                <video
+                  data-reel="hero"
+                  playsinline
+                  muted
+                  loop
+                  preload="metadata"
+                  poster="https://static.wixstatic.com/media/caae8e_134fc298528b431db043c08765aa1d98~mv2.jpg/v1/fill/w_540,h_720,al_c,q_85,enc_avif,quality_auto/caae8e_134fc298528b431db043c08765aa1d98~mv2.jpg"
+                ></video>
+                <div class="reel-shutter"><i></i><i></i></div>
+                <div class="reel-meta">
+                  <span class="reel-dot"></span>
+                  <span><span class="reel-state">REC</span> &middot; CINEMA STUDIO</span>
+                </div>
+                <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+              </div>
+              <div class="reel-copy">
+                <p class="panel-label">01 &middot; Owner reveal</p>
+                <h3>"Healthy hair, no limitations."</h3>
+                <p>Slow push-in on Christina, soft Raleigh window light, warm bone &amp; gold palette.</p>
+              </div>
+            </article>
+            <article class="reel-card" data-reveal data-reel-preset="Soul">
+              <div class="reel-frame">
+                <video
+                  data-reel="texture"
+                  playsinline
+                  muted
+                  loop
+                  preload="metadata"
+                  poster="https://static.wixstatic.com/media/caae8e_a400c502a0894b5292043270d4d7604a~mv2.jpg/v1/crop/x_0,y_149,w_806,h_668/fill/w_806,h_668,al_c,q_85,enc_avif,quality_auto/IMG_2837.jpg"
+                ></video>
+                <div class="reel-shutter"><i></i><i></i></div>
+                <div class="reel-meta">
+                  <span class="reel-dot"></span>
+                  <span><span class="reel-state">REC</span> &middot; SOUL</span>
+                </div>
+                <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+              </div>
+              <div class="reel-copy">
+                <p class="panel-label">02 &middot; Texture</p>
+                <h3>Macro curls, locz, glossy shine.</h3>
+                <p>Soul characters keep the model consistent across every shot in the campaign.</p>
+              </div>
+            </article>
+            <article class="reel-card" data-reveal data-reel-preset="Seedance">
+              <div class="reel-frame">
+                <video
+                  data-reel="craft"
+                  playsinline
+                  muted
+                  loop
+                  preload="metadata"
+                  poster="https://static.wixstatic.com/media/caae8e_4cd7e2a988444e7f95361dbf5a34c321~mv2.jpg/v1/crop/x_0,y_229,w_1300,h_1048/fill/w_828,h_668,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_0824_edited.jpg"
+                ></video>
+                <div class="reel-shutter"><i></i><i></i></div>
+                <div class="reel-meta">
+                  <span class="reel-dot"></span>
+                  <span><span class="reel-state">REC</span> &middot; SEEDANCE</span>
+                </div>
+                <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+              </div>
+              <div class="reel-copy">
+                <p class="panel-label">03 &middot; Craft</p>
+                <h3>Stylist hands, treatment shine.</h3>
+                <p>Tight orbit camera, gold and rose rim light, science-of-hair editorial tone.</p>
+              </div>
+            </article>
+            <article class="reel-card" data-reveal data-reel-preset="Kling">
+              <div class="reel-frame">
+                <video
+                  data-reel="reveal"
+                  playsinline
+                  muted
+                  loop
+                  preload="metadata"
+                  poster="https://static.wixstatic.com/media/caae8e_28aabef4ede04cffb9d6546e67936135~mv2.jpg/v1/crop/x_0,y_152,w_662,h_534/fill/w_794,h_641,al_c,lg_1,q_85,enc_avif,quality_auto/kiana%20headshot.jpg"
+                ></video>
+                <div class="reel-shutter"><i></i><i></i></div>
+                <div class="reel-meta">
+                  <span class="reel-dot"></span>
+                  <span><span class="reel-state">REC</span> &middot; KLING</span>
+                </div>
+                <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+              </div>
+              <div class="reel-copy">
+                <p class="panel-label">04 &middot; Mirror reveal</p>
+                <h3>"Book your consultation."</h3>
+                <p>Slow turn to camera, confident smile, final book-now title card.</p>
+              </div>
+            </article>
+          </div>
+          <div class="reel-footer" data-reveal>
+            <p>
+              <span>Built with</span>
+              <strong>Higgsfield AI</strong>
+              <span>&middot; Cinema Studio + Soul + Seedance + Kling 3.0</span>
+            </p>
+            <a class="button button-ghost" data-magnetic href="#video">View storyboard</a>
           </div>
         </section>
 

@@ -1,7 +1,7 @@
 :root {
   color-scheme: dark;
-  --ink: #070404;
-  --charcoal: #130b0c;
+  --ink: #050202;
+  --charcoal: #110909;
   --ivory: #fff8ef;
   --paper: #f8eee3;
   --soft: #e9dacd;
@@ -10,15 +10,39 @@
   --wine: #9f345d;
   --copper: #b86f43;
   --gold: #f8d47a;
+  --champagne: #efd9a8;
   --green: #23836f;
   --line: rgba(255, 248, 239, 0.18);
   --dark-line: rgba(7, 4, 4, 0.16);
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  --serif: "Fraunces", "Cormorant Garamond", "Playfair Display", Georgia,
+    "Times New Roman", serif;
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  font-family: var(--sans);
   font-synthesis: none;
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.loading-mark strong,
+.hero-content h1 span,
+.section-heading h2,
+.reel-heading h2,
+.reel-copy h3,
+.story-copy-panel h3,
+.craft-copy h2,
+.craft-step h3,
+.menu-card h3,
+.team-spotlight h3,
+.video-copy h2,
+.visit-copy h2,
+.contact-section h2 {
+  font-family: var(--serif);
+  font-feature-settings: "ss01" 1, "ss02" 1, "ss04" 1;
+  letter-spacing: -0.012em;
 }
 
 * {
@@ -81,9 +105,48 @@ body.is-loading {
 }
 
 .loading-mark strong {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--serif);
   font-size: clamp(2rem, 5vw, 4rem);
-  font-weight: 500;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: -0.02em;
+}
+
+.loading-mark em {
+  font-family: var(--sans);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: rgba(248, 212, 122, 0.86);
+  margin-top: 8px;
+}
+
+.loading-letterbox {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+}
+
+.loading-letterbox i {
+  display: block;
+  background: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.92) 100%);
+  transform-origin: top center;
+  animation: letterbox-in 1.6s cubic-bezier(0.7, 0, 0.2, 1) forwards;
+}
+
+.loading-letterbox i:last-child {
+  transform-origin: bottom center;
+  animation-direction: reverse;
+  background: linear-gradient(0deg, #000 0%, rgba(0, 0, 0, 0.92) 100%);
+}
+
+@keyframes letterbox-in {
+  0% { transform: scaleY(1); }
+  60% { transform: scaleY(0.18); }
+  100% { transform: scaleY(0.08); }
 }
 
 .loading-line {
@@ -1533,5 +1596,394 @@ h2 {
 
   .loading-screen {
     display: none;
+  }
+}
+
+/* ============ Premium reel section + ghost button (Higgsfield-ready) ============ */
+.button-ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 248, 239, 0.32);
+  color: var(--ivory);
+  padding: 14px 26px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.4s ease, color 0.4s ease, background 0.4s ease,
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.button-ghost:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(248, 212, 122, 0.06);
+}
+
+.reel-section {
+  padding: clamp(96px, 14vw, 168px) clamp(24px, 6vw, 96px);
+  background:
+    radial-gradient(ellipse at 18% 12%, rgba(248, 212, 122, 0.12), transparent 52%),
+    radial-gradient(ellipse at 82% 88%, rgba(230, 101, 152, 0.1), transparent 55%),
+    linear-gradient(180deg, #050202 0%, #100707 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.reel-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 248, 239, 0.03) 0 1px, transparent 1px 3px);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.reel-heading {
+  max-width: 760px;
+  margin: 0 auto clamp(56px, 8vw, 96px);
+  text-align: center;
+}
+.reel-heading h2 {
+  font-size: clamp(2.2rem, 4.4vw, 3.8rem);
+  font-weight: 350;
+  font-style: italic;
+  line-height: 1.04;
+  color: var(--ivory);
+  margin: 14px 0 18px;
+}
+.reel-heading p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.7;
+  max-width: 56ch;
+  margin: 0 auto;
+}
+
+.reel-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(20px, 2.2vw, 32px);
+  position: relative;
+  z-index: 1;
+}
+
+.reel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  opacity: 0;
+  will-change: transform;
+}
+
+.reel-frame {
+  position: relative;
+  aspect-ratio: 9 / 16;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #0a0505;
+  box-shadow:
+    0 30px 60px -30px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(248, 212, 122, 0.14),
+    inset 0 0 0 1px rgba(255, 248, 239, 0.04);
+  cursor: pointer;
+  transform: translateZ(0);
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.6s ease;
+}
+
+.reel-frame::before,
+.reel-frame::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 18%;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.62), transparent);
+  z-index: 2;
+  pointer-events: none;
+}
+.reel-frame::after {
+  top: auto;
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.72), transparent);
+}
+
+.reel-frame video,
+.reel-frame img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.reel-frame video {
+  background-image: var(--poster, none);
+  background-size: cover;
+  background-position: center;
+}
+
+.reel-frame video[poster] {
+  object-fit: cover;
+}
+
+.reel-card:hover .reel-frame {
+  transform: translateY(-6px) scale(1.012);
+  box-shadow:
+    0 50px 80px -32px rgba(248, 212, 122, 0.18),
+    0 0 0 1px rgba(248, 212, 122, 0.36),
+    inset 0 0 0 1px rgba(255, 248, 239, 0.08);
+}
+
+.reel-shutter {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  pointer-events: none;
+  z-index: 3;
+}
+.reel-shutter i {
+  background: #000;
+  transform-origin: top center;
+  transition: transform 0.95s cubic-bezier(0.76, 0, 0.18, 1);
+  transform: scaleY(1);
+}
+.reel-shutter i:last-child {
+  transform-origin: bottom center;
+}
+.reel-card.is-revealed .reel-shutter i {
+  transform: scaleY(0);
+}
+
+.reel-meta {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 4;
+  color: var(--ivory);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.36em;
+  background: rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 248, 239, 0.16);
+}
+
+.reel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff3b3b;
+  box-shadow: 0 0 12px rgba(255, 59, 59, 0.8);
+  animation: reel-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes reel-blink {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.reel-play {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  z-index: 4;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 248, 239, 0.42);
+  background: rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--ivory);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background 0.4s ease, border-color 0.4s ease;
+}
+.reel-play svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  transform: translateX(1px);
+}
+.reel-play:hover {
+  transform: scale(1.08);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.reel-card.is-playing .reel-play svg polygon {
+  display: none;
+}
+.reel-card.is-playing .reel-play::before {
+  content: "";
+  width: 4px;
+  height: 14px;
+  background: currentColor;
+  box-shadow: 8px 0 0 currentColor;
+}
+
+.reel-copy {
+  padding: 0 4px;
+}
+.reel-copy .panel-label {
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+.reel-copy h3 {
+  font-size: clamp(1.05rem, 1.4vw, 1.32rem);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.18;
+  margin: 0 0 8px;
+  color: var(--ivory);
+}
+.reel-copy p {
+  font-size: 13px;
+  line-height: 1.62;
+  color: var(--muted);
+  margin: 0;
+}
+
+.reel-footer {
+  margin-top: clamp(56px, 7vw, 88px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 248, 239, 0.08);
+  flex-wrap: wrap;
+}
+.reel-footer p {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reel-footer p strong {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 18px;
+  color: var(--gold);
+}
+
+@media (max-width: 1080px) {
+  .reel-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .reel-grid {
+    grid-template-columns: 1fr;
+  }
+  .reel-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Subtle film-grain pulse over hero for a more premium feel */
+.grain-layer {
+  mix-blend-mode: overlay;
+  animation: grain-shift 7s linear infinite;
+}
+@keyframes grain-shift {
+  0% { transform: translate(0, 0); }
+  25% { transform: translate(-6px, 4px); }
+  50% { transform: translate(4px, -6px); }
+  75% { transform: translate(-3px, -2px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Hero h1 — let the serif breathe */
+.hero-content h1 {
+  font-family: var(--serif);
+  font-weight: 350;
+  font-style: italic;
+  letter-spacing: -0.018em;
+}
+.hero-content h1 span:last-child {
+  color: var(--gold);
+}
+
+/* ============ Reel state machine (pending / loading / error) ============ */
+.reel-state {
+  display: inline-block;
+}
+
+/* `.reel-play` sets `display: grid` which overrides the UA `[hidden]` rule,
+   so we restore `display: none` explicitly when the button is hidden. */
+.reel-play[hidden] {
+  display: none;
+}
+
+/* Pending — no reel URL configured yet */
+.reel-card.is-pending .reel-dot {
+  background: #efd9a8;
+  box-shadow: 0 0 12px rgba(239, 217, 168, 0.55);
+  animation: reel-pending-pulse 2.4s ease-in-out infinite;
+}
+.reel-card.is-pending .reel-frame {
+  cursor: default;
+}
+@keyframes reel-pending-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
+
+/* Loading — URL set, video metadata loading */
+.reel-card.is-loading .reel-play {
+  opacity: 0.5;
+  pointer-events: none;
+  animation: reel-loading-fade 1.2s ease-in-out infinite;
+}
+@keyframes reel-loading-fade {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.7; }
+}
+
+/* Error — video failed to load */
+.reel-card.is-error .reel-dot {
+  background: #b86f43;
+  box-shadow: 0 0 8px rgba(184, 111, 67, 0.6);
+  animation: none;
+}
+.reel-card.is-error .reel-frame {
+  cursor: default;
+}
+
+/* Reduce motion: neutralize new pending/loading pulses (plan compliance;
+   the universal `*` rule at line 1583 already clamps duration to 1ms). */
+@media (prefers-reduced-motion: reduce) {
+  .reel-card.is-pending .reel-dot,
+  .reel-card.is-loading .reel-play {
+    animation: none !important;
   }
 }

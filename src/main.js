@@ -878,3 +878,132 @@ const counterObserver = new IntersectionObserver((entries) => {
 }, { threshold: 0.42 });
 
 counters.forEach((counter) => counterObserver.observe(counter));
+
+/* ---------------------------------------------------------------
+ * Higgsfield-ready reel cards
+ * Sources resolve from /public/reels.json (post-deploy editable, no rebuild).
+ * Inline window.HIGGSFIELD_REELS fills any keys the file leaves empty.
+ * Each card transitions: pending -> loading -> ready -> playing | error.
+ * ------------------------------------------------------------- */
+const clean = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj || {}).filter(
+      ([, v]) => typeof v === 'string' && v.length > 0,
+    ),
+  );
+
+async function loadReelSources() {
+  let fromFile = {};
+  try {
+    const url = `${import.meta.env.BASE_URL}reels.json`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) fromFile = await res.json();
+  } catch (_) {
+    // network / parse failure — degrade silently to inline-only
+  }
+  // file overrides inline: file is the post-deploy editing surface
+  return { ...clean(window.HIGGSFIELD_REELS), ...clean(fromFile) };
+}
+
+const reelCards = document.querySelectorAll('.reel-card');
+
+const reelObserver = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => {
+    const card = entry.target;
+    const video = card.querySelector('video');
+    if (entry.isIntersecting) {
+      card.classList.add('is-revealed');
+      if (video && video.dataset.loaded === 'true' && card.classList.contains('is-playing')) {
+        video.play().catch(() => {});
+      }
+    } else if (video) {
+      video.pause();
+    }
+  });
+}, { threshold: 0.32 });
+
+function setState(card, state) {
+  card.classList.remove('is-pending', 'is-loading', 'is-ready', 'is-error');
+  card.classList.add(`is-${state}`);
+
+  const stateEl = card.querySelector('.reel-state');
+  if (stateEl) {
+    stateEl.textContent =
+      state === 'pending' ? 'RENDERING' :
+      state === 'error' ? 'PREVIEW SOON' :
+      'REC';
+  }
+
+  const playBtn = card.querySelector('.reel-play');
+  if (playBtn) {
+    playBtn.hidden = state === 'pending' || state === 'error';
+    if (state === 'ready') {
+      playBtn.removeAttribute('aria-disabled');
+      playBtn.removeAttribute('tabindex');
+    } else {
+      playBtn.setAttribute('aria-disabled', 'true');
+      playBtn.setAttribute('tabindex', '-1');
+    }
+  }
+}
+
+reelCards.forEach((card) => {
+  reelObserver.observe(card);
+  setState(card, 'pending');
+});
+
+loadReelSources().then((reelSources) => {
+  reelCards.forEach((card) => {
+    const video = card.querySelector('video');
+    const playBtn = card.querySelector('.reel-play');
+    const key = video?.dataset.reel;
+    const src = key && reelSources[key];
+
+    if (!video || !src) return; // already pending
+
+    setState(card, 'loading');
+
+    // Some browsers/CDNs leave the video in NETWORK_LOADING forever instead of
+    // firing `error` for unreachable hosts. Fail over after a reasonable wait.
+    const loadTimeout = setTimeout(() => {
+      if (!card.classList.contains('is-ready')) setState(card, 'error');
+    }, 12000);
+
+    video.addEventListener('loadedmetadata', () => {
+      clearTimeout(loadTimeout);
+      video.dataset.loaded = 'true';
+      setState(card, 'ready');
+    }, { once: true });
+
+    video.addEventListener('error', () => {
+      clearTimeout(loadTimeout);
+      setState(card, 'error');
+    }, { once: true });
+
+    video.src = src;
+
+    const togglePlay = () => {
+      if (!card.classList.contains('is-ready') && !card.classList.contains('is-playing')) return;
+      if (!video.dataset.loaded) return;
+      if (video.paused) {
+        reelCards.forEach((other) => {
+          if (other !== card) {
+            const otherVideo = other.querySelector('video');
+            otherVideo?.pause();
+            other.classList.remove('is-playing');
+          }
+        });
+        video.play().then(() => card.classList.add('is-playing')).catch(() => {});
+      } else {
+        video.pause();
+        card.classList.remove('is-playing');
+      }
+    };
+
+    playBtn?.addEventListener('click', (event) => {
+      event.stopPropagation();
+      togglePlay();
+    });
+    card.querySelector('.reel-frame')?.addEventListener('click', togglePlay);
+  });
+});
