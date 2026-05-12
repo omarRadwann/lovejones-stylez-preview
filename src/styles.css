@@ -2514,3 +2514,146 @@ h2 {
   color: var(--gold);
   font-weight: 600;
 }
+
+/* ====================================================================
+   MOONSHOT MOBILE FRIENDLINESS — touch, safe areas, viewport-aware sizing
+   ==================================================================== */
+
+/* iOS safe-area insets — header + booking modal respect the notch / home bar */
+.site-header {
+  padding-top: max(14px, env(safe-area-inset-top));
+  padding-left: max(14px, env(safe-area-inset-left));
+  padding-right: max(14px, env(safe-area-inset-right));
+}
+.booking-modal {
+  padding-top: max(24px, env(safe-area-inset-top));
+  padding-right: max(24px, env(safe-area-inset-right));
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  padding-left: max(24px, env(safe-area-inset-left));
+}
+
+/* #6 Share button: no `:hover` on touch screens -- make it always visible
+   once the card has revealed (gives mobile users the same affordance). */
+@media (hover: none) {
+  .reel-card.is-revealed .reel-share {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  /* Bump the share label hit area for fingers */
+  .reel-share {
+    padding: 12px 16px 12px 14px;
+  }
+}
+
+/* #8 Team carousel dots: 8px is far below the 44x44 WCAG tap target.
+   On touch, expand the hit area to 32px while keeping the dot visually 8px. */
+@media (pointer: coarse), (max-width: 720px) {
+  .team-dot {
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    position: relative;
+    transform: none !important;
+  }
+  .team-dot::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: rgba(255, 248, 239, 0.2);
+    transition: background 0.3s ease, transform 0.3s ease;
+  }
+  .team-dot.is-active::after {
+    background: var(--gold);
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+  .team-dots { gap: 4px; }
+  .team-nav {
+    width: 52px;
+    height: 52px; /* 44+ WCAG */
+  }
+}
+
+/* #4 CROWN pillar letters: 22vw × 5 letters overflows phone viewport.
+   Hide on phones (the headline carries the section), scale down on tablets. */
+@media (max-width: 720px) {
+  .crown-pillar { display: none; }
+  .crown-section {
+    padding: clamp(80px, 14vw, 120px) 22px;
+  }
+  .crown-section h2 {
+    font-size: clamp(2.1rem, 9vw, 3.2rem);
+  }
+}
+@media (max-width: 1080px) and (min-width: 721px) {
+  .crown-pillar {
+    font-size: clamp(80px, 14vw, 160px);
+    gap: clamp(20px, 4vw, 60px);
+  }
+}
+
+/* #5 Drifting reviews: cramped on tablets — hide under desktop width.
+   (Already hidden under 720px from JS; this catches the 721-1080 range.) */
+@media (max-width: 1080px) {
+  .reviews-drift { display: none; }
+}
+
+/* #1 Hero soul: mix-blend-mode: screen is GPU-expensive on mobile.
+   Use plain alpha compositing on phones (still looks lush). */
+@media (max-width: 720px) {
+  .hero-soul {
+    mix-blend-mode: normal;
+    opacity: 0;
+  }
+  .hero-soul.is-live { opacity: 0.68; }
+}
+
+/* #14 Hero stat: don't wrap "24 | years in hair" weirdly on small phones */
+@media (max-width: 540px) {
+  .hero-stat { white-space: nowrap; }
+  .hero-stat-num { font-size: 1.2em; }
+}
+
+/* #8 Team carousel: tighten slot width so it actually fits the phone viewport */
+@media (max-width: 480px) {
+  .team-stage { perspective: 1000px; }
+  .team-slot {
+    width: 76vw;
+    margin-left: -38vw;
+  }
+  .team-meta h3 { font-size: 1.35rem; }
+  .team-meta p { font-size: 12.5px; }
+}
+
+/* Tap feedback for the touch-only crowd */
+@media (hover: none) {
+  .booking-options button:active,
+  .team-nav:active,
+  .reel-share:active,
+  .reel-play:active,
+  .button:active {
+    transform: scale(0.96);
+    transition: transform 0.06s ease;
+  }
+}
+
+/* Booking modal close: 36 → 44 on touch, easier tap target */
+@media (pointer: coarse) {
+  .booking-close {
+    width: 44px;
+    height: 44px;
+    font-size: 26px;
+  }
+}
+
+/* Long modal on tiny phones: allow scroll inside the card */
+@supports (height: 100dvh) {
+  .booking-card {
+    max-height: calc(100dvh - 56px);
+    overflow-y: auto;
+  }
+}

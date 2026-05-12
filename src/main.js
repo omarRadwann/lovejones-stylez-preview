@@ -1286,6 +1286,27 @@ reelSourcesPromise.then((reelSources) => {
   next?.addEventListener('click', () => step(1));
   dots.forEach((d, i) => d.addEventListener('click', () => { index = i; layout(); restartAutoplay(); }));
 
+  // Touch swipe support -- mobile users expect to drag, not hunt for buttons.
+  let touchX = 0;
+  let touchY = 0;
+  let touchActive = false;
+  stage.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    touchX = e.touches[0].clientX;
+    touchY = e.touches[0].clientY;
+    touchActive = true;
+  }, { passive: true });
+  stage.addEventListener('touchend', (e) => {
+    if (!touchActive) return;
+    touchActive = false;
+    const dx = e.changedTouches[0].clientX - touchX;
+    const dy = e.changedTouches[0].clientY - touchY;
+    // Only horizontal swipes (don't intercept vertical scroll)
+    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      step(dx < 0 ? 1 : -1);
+    }
+  }, { passive: true });
+
   // Pointer rim-light on the current portrait
   slots.forEach((slot) => {
     const portrait = slot.querySelector('.team-portrait');
