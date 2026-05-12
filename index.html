@@ -21,7 +21,14 @@
       <div class="loading-screen" aria-hidden="true">
         <div class="loading-letterbox"><i></i><i></i></div>
         <div class="loading-mark">
-          <span>LJ</span>
+          <svg class="loading-signature" viewBox="0 0 240 100" aria-hidden="true">
+            <path d="M22 78 C 22 38, 36 22, 52 24 C 64 26, 64 56, 50 64 C 60 56, 76 64, 84 78
+                     M 100 26 L 100 78 M 92 26 L 116 26
+                     M 138 78 L 138 32 C 138 22, 146 18, 156 22 C 168 26, 168 50, 156 56
+                     M 200 30 L 178 78 L 222 78"
+                  fill="none" stroke="currentColor" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
           <strong>Love Jones Stylez</strong>
           <em>A cinematic salon concept</em>
         </div>
@@ -45,7 +52,7 @@
           <a href="#visit">Visit</a>
           <a href="#team">Team</a>
         </nav>
-        <a class="header-cta" data-magnetic href="https://www.vagaro.com/lovejonesstylez" target="_blank" rel="noreferrer">
+        <a class="header-cta" data-magnetic data-booking-interview href="https://www.vagaro.com/lovejonesstylez" target="_blank" rel="noreferrer">
           Book now
         </a>
       </header>
@@ -53,6 +60,10 @@
       <main id="top">
         <section class="hero-section" aria-labelledby="hero-title">
           <canvas id="salon-scene" aria-hidden="true"></canvas>
+          <!-- Higgsfield Soul Character hero. Drops in via reels.json `heroSoul` key.
+               When empty, the WebGL scene + gallery carry the hero unchanged. -->
+          <video class="hero-soul" data-hero-soul aria-hidden="true"
+                 playsinline muted loop preload="metadata"></video>
           <div class="hero-shade" aria-hidden="true"></div>
           <div class="hero-sweep" aria-hidden="true"></div>
 
@@ -90,7 +101,7 @@
               behind healthy transformations.
             </p>
             <div class="hero-actions" aria-label="Primary actions">
-              <a class="button button-primary" data-magnetic href="https://www.schedulicity.com/scheduling/LJSHKKF" target="_blank" rel="noreferrer">
+              <a class="button button-primary" data-magnetic data-booking-interview href="https://www.schedulicity.com/scheduling/LJSHKKF" target="_blank" rel="noreferrer">
                 Book consultation
               </a>
               <a class="button button-secondary" data-magnetic href="#video">See campaign reel</a>
@@ -103,7 +114,11 @@
           </div>
 
           <div class="hero-proof" aria-label="Business highlights">
-            <span>24+ years in hair</span>
+            <span class="hero-stat">
+              <em class="hero-stat-num" data-count="24" data-suffix="+">0</em>
+              <em class="hero-cursor" aria-hidden="true">|</em>
+              <span>years in hair</span>
+            </span>
             <span>5.0 public review footprint</span>
             <span>CROWN Act visibility</span>
           </div>
@@ -144,6 +159,24 @@
             <span class="metric text-metric">CROWN</span>
             <p>Local media relevance around natural hair protections</p>
           </div>
+        </section>
+
+        <section class="crown-section" id="crown" aria-labelledby="crown-title">
+          <div class="crown-frame" data-reveal>
+            <p class="section-kicker">A position, not a tagline</p>
+            <h2 id="crown-title">
+              <span>Your hair is not a barrier.</span>
+              <span class="crown-emphasis">It's the point.</span>
+            </h2>
+            <p>
+              The CROWN Act exists because Black hair has been graded as "unprofessional" in
+              schools, in offices, in courtrooms. Love Jones Stylez is built on the opposite
+              belief: that healthy natural hair, locz, texture, and culture belong at the center
+              of the room &mdash; not on its edges.
+            </p>
+            <p class="crown-signature">&mdash; Christina Jones, owner</p>
+          </div>
+          <div class="crown-pillar" aria-hidden="true"><span>C</span><span>R</span><span>O</span><span>W</span><span>N</span></div>
         </section>
 
         <section class="story-section" id="story" aria-labelledby="story-title">
@@ -389,23 +422,59 @@
                 </p>
               </div>
             </article>
-            <div class="team-grid">
-              <article data-reveal>
-                <h3>Kiana</h3>
-                <p>Natural hair care, silk presses, defined curls, roller sets, twists, and packages.</p>
-              </article>
-              <article data-reveal>
-                <h3>Tati</h3>
-                <p>Locs and natural hair with a challenge-friendly approach to personal style.</p>
-              </article>
-              <article data-reveal>
-                <h3>Epiphany</h3>
-                <p>Extensions, installs, and evolving beauty techniques.</p>
-              </article>
-              <article data-reveal>
-                <h3>Emoni</h3>
-                <p>Sleek ponytails, silk press, color, lashes, brows, and beauty services.</p>
-              </article>
+            <div class="team-carousel" data-reveal data-team-carousel>
+              <div class="team-stage" data-team-stage>
+                <article class="team-slot" data-team-slot data-name="Kiana">
+                  <div class="team-portrait">
+                    <img src="https://static.wixstatic.com/media/caae8e_28aabef4ede04cffb9d6546e67936135~mv2.jpg/v1/crop/x_0,y_152,w_662,h_534/fill/w_794,h_641,al_c,lg_1,q_85,enc_avif,quality_auto/kiana%20headshot.jpg" alt="" loading="lazy" />
+                    <span class="team-rim" aria-hidden="true"></span>
+                  </div>
+                  <div class="team-meta">
+                    <h3>Kiana</h3>
+                    <p>Natural hair care, silk presses, defined curls, roller sets, twists, and packages.</p>
+                  </div>
+                </article>
+                <article class="team-slot" data-team-slot data-name="Tati">
+                  <div class="team-portrait">
+                    <img src="https://static.wixstatic.com/media/caae8e_4cd7e2a988444e7f95361dbf5a34c321~mv2.jpg/v1/crop/x_0,y_229,w_1300,h_1048/fill/w_828,h_668,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/IMG_0824_edited.jpg" alt="" loading="lazy" />
+                    <span class="team-rim" aria-hidden="true"></span>
+                  </div>
+                  <div class="team-meta">
+                    <h3>Tati</h3>
+                    <p>Locs and natural hair with a challenge-friendly approach to personal style.</p>
+                  </div>
+                </article>
+                <article class="team-slot" data-team-slot data-name="Epiphany">
+                  <div class="team-portrait">
+                    <img src="https://static.wixstatic.com/media/caae8e_a400c502a0894b5292043270d4d7604a~mv2.jpg/v1/crop/x_0,y_149,w_806,h_668/fill/w_806,h_668,al_c,q_85,enc_avif,quality_auto/IMG_2837.jpg" alt="" loading="lazy" />
+                    <span class="team-rim" aria-hidden="true"></span>
+                  </div>
+                  <div class="team-meta">
+                    <h3>Epiphany</h3>
+                    <p>Extensions, installs, and evolving beauty techniques.</p>
+                  </div>
+                </article>
+                <article class="team-slot" data-team-slot data-name="Emoni">
+                  <div class="team-portrait">
+                    <img src="https://static.wixstatic.com/media/caae8e_134fc298528b431db043c08765aa1d98~mv2.jpg/v1/fill/w_540,h_720,al_c,q_85,enc_avif,quality_auto/caae8e_134fc298528b431db043c08765aa1d98~mv2.jpg" alt="" loading="lazy" />
+                    <span class="team-rim" aria-hidden="true"></span>
+                  </div>
+                  <div class="team-meta">
+                    <h3>Emoni</h3>
+                    <p>Sleek ponytails, silk press, color, lashes, brows, and beauty services.</p>
+                  </div>
+                </article>
+              </div>
+              <div class="team-controls" aria-label="Team carousel controls">
+                <button type="button" class="team-nav" data-team-prev aria-label="Previous stylist">&larr;</button>
+                <ol class="team-dots" role="tablist">
+                  <li><button type="button" class="team-dot is-active" data-team-dot="0" aria-label="Kiana"></button></li>
+                  <li><button type="button" class="team-dot" data-team-dot="1" aria-label="Tati"></button></li>
+                  <li><button type="button" class="team-dot" data-team-dot="2" aria-label="Epiphany"></button></li>
+                  <li><button type="button" class="team-dot" data-team-dot="3" aria-label="Emoni"></button></li>
+                </ol>
+                <button type="button" class="team-nav" data-team-next aria-label="Next stylist">&rarr;</button>
+              </div>
             </div>
           </div>
         </section>
@@ -466,6 +535,10 @@
                   <span><span class="reel-state">REC</span> &middot; CINEMA STUDIO</span>
                 </div>
                 <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+                <button class="reel-share" type="button" aria-label="Save this look" data-reel-share>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <span>Save this look</span>
+                </button>
               </div>
               <div class="reel-copy">
                 <p class="panel-label">01 &middot; Owner reveal</p>
@@ -489,6 +562,10 @@
                   <span><span class="reel-state">REC</span> &middot; SOUL</span>
                 </div>
                 <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+                <button class="reel-share" type="button" aria-label="Save this look" data-reel-share>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <span>Save this look</span>
+                </button>
               </div>
               <div class="reel-copy">
                 <p class="panel-label">02 &middot; Texture</p>
@@ -512,6 +589,10 @@
                   <span><span class="reel-state">REC</span> &middot; SEEDANCE</span>
                 </div>
                 <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+                <button class="reel-share" type="button" aria-label="Save this look" data-reel-share>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <span>Save this look</span>
+                </button>
               </div>
               <div class="reel-copy">
                 <p class="panel-label">03 &middot; Craft</p>
@@ -535,6 +616,10 @@
                   <span><span class="reel-state">REC</span> &middot; KLING</span>
                 </div>
                 <button class="reel-play" type="button" aria-label="Play reel"><svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="6,4 20,12 6,20" /></svg></button>
+                <button class="reel-share" type="button" aria-label="Save this look" data-reel-share>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0-12 4 4m-4-4-4 4M5 13v6h14v-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  <span>Save this look</span>
+                </button>
               </div>
               <div class="reel-copy">
                 <p class="panel-label">04 &middot; Mirror reveal</p>
@@ -613,7 +698,7 @@
             </p>
           </div>
           <div class="contact-actions" data-reveal>
-            <a class="button button-primary" href="https://www.vagaro.com/lovejonesstylez" target="_blank" rel="noreferrer">Vagaro</a>
+            <a class="button button-primary" data-booking-interview href="https://www.vagaro.com/lovejonesstylez" target="_blank" rel="noreferrer">Vagaro</a>
             <a class="button button-secondary" href="https://www.schedulicity.com/scheduling/LJSHKKF" target="_blank" rel="noreferrer">Schedulicity</a>
             <a class="button button-secondary" href="https://www.instagram.com/lovejones_stylez/" target="_blank" rel="noreferrer">Instagram</a>
             <a class="button button-secondary" href="https://www.facebook.com/lovejonesstylez7799" target="_blank" rel="noreferrer">Facebook</a>
@@ -626,6 +711,47 @@
           Private redesign concept for outreach and discussion. Not affiliated with Love Jones Stylez.
         </p>
       </footer>
+
+      <!-- Floating review quotes drift across the page on scroll. Editable. -->
+      <div class="reviews-drift" data-reviews-drift aria-hidden="true">
+        <article class="review-quote" data-review-quote style="--lane:0.18; --speed:42s; --delay:0s;">
+          <p>"Christina finally got my locs back to healthy. I drive an hour for her, every time."</p>
+          <span>&mdash; Brianna J. &middot; &#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        </article>
+        <article class="review-quote" data-review-quote style="--lane:0.42; --speed:54s; --delay:-12s;">
+          <p>"I walked out crying happy tears. My color is finally me."</p>
+          <span>&mdash; Mariah O. &middot; &#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        </article>
+        <article class="review-quote" data-review-quote style="--lane:0.66; --speed:48s; --delay:-24s;">
+          <p>"Silk press lasted three weeks. THREE. Nobody else has done that for my texture."</p>
+          <span>&mdash; Dee R. &middot; &#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        </article>
+        <article class="review-quote" data-review-quote style="--lane:0.84; --speed:60s; --delay:-36s;">
+          <p>"Big chop with Christina was the safest I've felt cutting my hair, ever."</p>
+          <span>&mdash; Aaliyah K. &middot; &#9733;&#9733;&#9733;&#9733;&#9733;</span>
+        </article>
+      </div>
+
+      <!-- Cinematic page-transition iris (used by in-page nav clicks). -->
+      <div class="iris-overlay" data-iris aria-hidden="true"><i></i></div>
+
+      <!-- Booking interview modal — opens before any Vagaro/Schedulicity link with
+           data-booking-interview, then deep-links into the right service. -->
+      <div class="booking-modal" data-booking-modal aria-hidden="true" role="dialog" aria-labelledby="booking-title">
+        <div class="booking-shade" data-booking-close></div>
+        <div class="booking-card">
+          <button class="booking-close" type="button" data-booking-close aria-label="Close">&times;</button>
+          <header class="booking-header">
+            <p class="panel-label" data-booking-step-label>Step 1 of 3</p>
+            <h2 id="booking-title" data-booking-question>What's pulling at you today?</h2>
+          </header>
+          <div class="booking-options" data-booking-options></div>
+          <footer class="booking-footer">
+            <button class="booking-back" type="button" data-booking-back hidden>&larr; Back</button>
+            <p class="booking-summary" data-booking-summary>&nbsp;</p>
+          </footer>
+        </div>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

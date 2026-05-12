@@ -456,27 +456,31 @@ orbitLabels.forEach(([label, sublabel], index) => {
 const hairCurveGroup = new THREE.Group();
 root.add(hairCurveGroup);
 
-const hairCurveCount = isMobileViewport() ? 2 : 3;
+// #7 Hair-strand presence — was 2-3 strands, now 8-14 flowing across the
+// viewport in the brand palette (gold, rose, copper, green, ivory).
+// Stays the cheap MeshBasicMaterial + additive blending, so it's GPU-free.
+const hairCurveCount = isMobileViewport() ? 8 : 14;
 for (let i = 0; i < hairCurveCount; i += 1) {
-  const y = THREE.MathUtils.lerp(-2.7, 2.75, i / Math.max(1, hairCurveCount - 1));
-  const z = THREE.MathUtils.randFloat(-3.6, 0.8);
-  const phase = i * 0.37;
+  const y = THREE.MathUtils.lerp(-3.2, 3.2, i / Math.max(1, hairCurveCount - 1));
+  const z = THREE.MathUtils.randFloat(-3.6, 1.2);
+  const phase = i * 0.31;
   const points = [];
-  for (let p = 0; p < 7; p += 1) {
-    const t = p / 6;
+  for (let p = 0; p < 9; p += 1) {
+    const t = p / 8;
     points.push(new THREE.Vector3(
-      THREE.MathUtils.lerp(-7.5, 6.6, t),
-      y + Math.sin(t * Math.PI * 2 + phase) * (0.24 + (i % 5) * 0.035),
-      z + Math.cos(t * Math.PI * 1.4 + phase) * 0.42,
+      THREE.MathUtils.lerp(-8.2, 7.2, t),
+      y + Math.sin(t * Math.PI * 2.2 + phase) * (0.28 + (i % 5) * 0.05),
+      z + Math.cos(t * Math.PI * 1.4 + phase) * 0.52,
     ));
   }
   const curve = new THREE.CatmullRomCurve3(points);
+  const isHero = i % 4 === 0;
   const tube = new THREE.Mesh(
-    new THREE.TubeGeometry(curve, 24, i % 4 === 0 ? 0.01 : 0.006, 4, false),
+    new THREE.TubeGeometry(curve, 32, isHero ? 0.014 : 0.0075, 4, false),
     new THREE.MeshBasicMaterial({
       color: colors[(i + 1) % colors.length],
       transparent: true,
-      opacity: i % 4 === 0 ? 0.28 : 0.18,
+      opacity: isHero ? 0.42 : 0.24,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     }),
@@ -485,7 +489,7 @@ for (let i = 0; i < hairCurveCount; i += 1) {
     baseY: tube.position.y,
     baseZ: tube.position.z,
     phase,
-    speed: THREE.MathUtils.randFloat(0.16, 0.42),
+    speed: THREE.MathUtils.randFloat(0.18, 0.48),
   };
   hairCurveGroup.add(tube);
 }
@@ -1000,13 +1004,41 @@ async function loadReelSources() {
 
 const reelCards = document.querySelectorAll('.reel-card');
 
+// Cinema-strip auto-play: when the reel section enters the viewport, stagger
+// each card's playback so all four reels light up in sequence. Once-only per
+// card (data-autoplay-done flag) so scroll-out / scroll-in won't restart.
+function autoPlayCard(card) {
+  if (card.dataset.autoplayDone) return;
+  const video = card.querySelector('video');
+  if (!video || video.dataset.loaded !== 'true') return;
+  if (!card.classList.contains('is-revealed')) return;
+  const idx = Array.prototype.indexOf.call(reelCards, card);
+  const delay = Math.max(0, idx * 400);
+  card.dataset.autoplayPending = 'true';
+  setTimeout(() => {
+    delete card.dataset.autoplayPending;
+    if (document.hidden) return;
+    if (!card.classList.contains('is-revealed')) return;
+    video.play().then(() => {
+      card.classList.add('is-playing');
+      card.dataset.autoplayDone = 'true';
+    }).catch(() => {});
+  }, delay);
+}
+
 const reelObserver = new IntersectionObserver((entries) => {
   entries.forEach((entry) => {
     const card = entry.target;
     const video = card.querySelector('video');
     if (entry.isIntersecting) {
+      const justRevealed = !card.classList.contains('is-revealed');
       card.classList.add('is-revealed');
-      if (video && video.dataset.loaded === 'true' && card.classList.contains('is-playing')) {
+      // #12 Vibration: subtle haptic confirmation on mobile during the first reveal.
+      if (justRevealed && 'vibrate' in navigator) {
+        try { navigator.vibrate(6); } catch (_) { /* not allowed */ }
+      }
+      if (justRevealed) autoPlayCard(card);
+      else if (video && video.dataset.loaded === 'true' && card.classList.contains('is-playing')) {
         video.play().catch(() => {});
       }
     } else if (video) {
@@ -1045,7 +1077,24 @@ reelCards.forEach((card) => {
   setState(card, 'pending');
 });
 
-loadReelSources().then((reelSources) => {
+const reelSourcesPromise = loadReelSources();
+
+// #1 Hero Soul: when reels.json provides a `heroSoul` URL, this Higgsfield Soul
+// clip plays behind the WebGL scene with `mix-blend-mode: screen`, giving the
+// hero the feeling that Christina herself is shining through the page.
+reelSourcesPromise.then((reelSources) => {
+  const heroSoulUrl = reelSources.heroSoul;
+  const heroVideo = document.querySelector('[data-hero-soul]');
+  if (!heroSoulUrl || !heroVideo) return;
+  heroVideo.addEventListener('loadedmetadata', () => {
+    heroVideo.classList.add('is-live');
+    document.querySelector('.hero-section')?.classList.add('has-hero-soul');
+    heroVideo.play().catch(() => {});
+  }, { once: true });
+  heroVideo.src = heroSoulUrl;
+});
+
+reelSourcesPromise.then((reelSources) => {
   reelCards.forEach((card) => {
     const video = card.querySelector('video');
     const playBtn = card.querySelector('.reel-play');
@@ -1066,6 +1115,9 @@ loadReelSources().then((reelSources) => {
       clearTimeout(loadTimeout);
       video.dataset.loaded = 'true';
       setState(card, 'ready');
+      // If the card is already on-screen when metadata lands, auto-play now.
+      // (Otherwise the IntersectionObserver kicks it in on first reveal.)
+      if (card.classList.contains('is-revealed')) autoPlayCard(card);
     }, { once: true });
 
     video.addEventListener('error', () => {
@@ -1100,3 +1152,425 @@ loadReelSources().then((reelSources) => {
     card.querySelector('.reel-frame')?.addEventListener('click', togglePlay);
   });
 });
+
+/* ============================================================================
+ * MOONSHOT PACK — additional features layered on top of the existing site.
+ * Each block is self-contained; remove freely without breaking anything else.
+ * ========================================================================== */
+
+// ---- #11 Time-of-day gold theme shift ----
+(() => {
+  const hour = new Date().getHours();
+  const root = document.documentElement;
+  if (hour >= 5 && hour < 12) root.classList.add('is-tod-morning');
+  else if (hour >= 17 || hour < 5) root.classList.add('is-tod-evening');
+  else root.classList.add('is-tod-afternoon');
+})();
+
+// ---- #5 Drifting review quotes (reveal after first scroll, hide on small screens) ----
+(() => {
+  const drift = document.querySelector('[data-reviews-drift]');
+  if (!drift) return;
+  if (window.matchMedia('(max-width: 720px)').matches || prefersReducedMotion) return;
+  const reveal = () => {
+    drift.classList.add('is-live');
+    drift.setAttribute('aria-hidden', 'false');
+  };
+  // Wait for first scroll + a beat after, so it doesn't overlap the loader.
+  let triggered = false;
+  const onScroll = () => {
+    if (triggered || window.scrollY < 400) return;
+    triggered = true;
+    setTimeout(reveal, 600);
+    window.removeEventListener('scroll', onScroll);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+})();
+
+// ---- #9 Menu price count-up ----
+// Wraps every `$NN` in menu lists with a span, then animates digits from 0
+// when the card enters viewport. Counts the max value in each price range
+// (so "$30 - $35" counts up to 35, then renders "$30 - $35").
+(() => {
+  const cards = document.querySelectorAll('.menu-card');
+  if (!cards.length) return;
+  const PRICE_RE = /\$(\d+)/g;
+  cards.forEach((card) => {
+    card.querySelectorAll('li').forEach((li) => {
+      const original = li.textContent;
+      const matches = [...original.matchAll(PRICE_RE)];
+      if (!matches.length) return;
+      li.innerHTML = original.replace(PRICE_RE, '<span class="price-num" data-target="$1" data-final="$$$1">$0</span>');
+    });
+  });
+  const tweenCard = (card) => {
+    if (card.dataset.priceAnimDone) return;
+    card.dataset.priceAnimDone = 'true';
+    const nums = card.querySelectorAll('.price-num');
+    nums.forEach((node, idx) => {
+      const target = Number(node.dataset.target);
+      const final = node.dataset.final;
+      const dur = 900;
+      const startDelay = 60 + idx * 50;
+      const start = performance.now() + startDelay;
+      const tick = (now) => {
+        const t = Math.min(1, Math.max(0, (now - start) / dur));
+        if (t <= 0) { requestAnimationFrame(tick); return; }
+        const eased = 1 - Math.pow(1 - t, 3);
+        node.textContent = `$${Math.round(target * eased)}`;
+        if (t < 1) requestAnimationFrame(tick);
+        else node.textContent = final;
+      };
+      requestAnimationFrame(tick);
+    });
+  };
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) tweenCard(e.target); });
+  }, { threshold: 0.18 });
+  cards.forEach((c) => obs.observe(c));
+})();
+
+// ---- #8 3D portrait carousel for the team ----
+(() => {
+  const stage = document.querySelector('[data-team-stage]');
+  if (!stage) return;
+  const slots = Array.from(stage.querySelectorAll('[data-team-slot]'));
+  if (!slots.length) return;
+  const dots = Array.from(document.querySelectorAll('[data-team-dot]'));
+  const prev = document.querySelector('[data-team-prev]');
+  const next = document.querySelector('[data-team-next]');
+  let index = 0;
+  let autoplayId = 0;
+
+  const layout = () => {
+    slots.forEach((slot, i) => {
+      const offset = ((i - index) % slots.length + slots.length) % slots.length;
+      const wrapped = offset > slots.length / 2 ? offset - slots.length : offset;
+      const tx = wrapped * 56; // %
+      const tz = -Math.abs(wrapped) * 180; // px
+      const rotY = wrapped * -14;
+      const opacity = Math.abs(wrapped) >= 2 ? 0 : (wrapped === 0 ? 1 : 0.42);
+      const filter = wrapped === 0 ? 'none' : 'blur(2px) saturate(0.8)';
+      slot.style.transform = `translateX(${tx}%) translateZ(${tz}px) rotateY(${rotY}deg)`;
+      slot.style.opacity = String(opacity);
+      slot.style.filter = filter;
+      slot.classList.toggle('is-current', wrapped === 0);
+    });
+    dots.forEach((d, i) => d.classList.toggle('is-active', i === index));
+  };
+
+  const step = (dir) => {
+    index = (index + dir + slots.length) % slots.length;
+    layout();
+    restartAutoplay();
+  };
+
+  const restartAutoplay = () => {
+    clearInterval(autoplayId);
+    if (prefersReducedMotion) return;
+    autoplayId = setInterval(() => { index = (index + 1) % slots.length; layout(); }, 5800);
+  };
+
+  prev?.addEventListener('click', () => step(-1));
+  next?.addEventListener('click', () => step(1));
+  dots.forEach((d, i) => d.addEventListener('click', () => { index = i; layout(); restartAutoplay(); }));
+
+  // Pointer rim-light on the current portrait
+  slots.forEach((slot) => {
+    const portrait = slot.querySelector('.team-portrait');
+    portrait?.addEventListener('pointermove', (e) => {
+      const r = portrait.getBoundingClientRect();
+      portrait.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+      portrait.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+    });
+  });
+
+  // Pause autoplay when the section is offscreen, resume when it comes back
+  const section = document.querySelector('.team-section');
+  if (section) {
+    new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) restartAutoplay();
+        else clearInterval(autoplayId);
+      });
+    }, { threshold: 0.2 }).observe(section);
+  }
+
+  layout();
+  restartAutoplay();
+})();
+
+// ---- #13 Cinema page transitions on in-page anchors ----
+(() => {
+  const iris = document.querySelector('[data-iris]');
+  if (!iris || prefersReducedMotion) return;
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) return;
+    const target = link.getAttribute('href');
+    if (!target || target.length < 2) return;
+    if (link.hasAttribute('data-no-transition')) return;
+    const node = document.querySelector(target);
+    if (!node) return;
+    event.preventDefault();
+    iris.classList.add('is-closing');
+    setTimeout(() => {
+      lenis.scrollTo(node, { duration: 0.001 });
+      window.history.replaceState(null, '', target);
+      requestAnimationFrame(() => {
+        iris.classList.remove('is-closing');
+      });
+    }, 360);
+  });
+})();
+
+// ---- #2 Cinema booking interview modal ----
+(() => {
+  const modal = document.querySelector('[data-booking-modal]');
+  if (!modal) return;
+  const optionsEl = modal.querySelector('[data-booking-options]');
+  const questionEl = modal.querySelector('[data-booking-question]');
+  const stepLabel = modal.querySelector('[data-booking-step-label]');
+  const summaryEl = modal.querySelector('[data-booking-summary]');
+  const backBtn = modal.querySelector('[data-booking-back]');
+  const closeEls = modal.querySelectorAll('[data-booking-close]');
+
+  // Service map → routes to Christina's existing Vagaro booking page with a
+  // search hint so she lands on the right service. Falls back to the main page.
+  const VAGARO_BASE = 'https://www.vagaro.com/lovejonesstylez';
+  const flow = [
+    {
+      label: 'Step 1 of 3',
+      question: "What's pulling at you today?",
+      options: [
+        { label: 'Color', service: 'Color services', key: 'service' },
+        { label: 'Locz', service: 'Locz', key: 'service' },
+        { label: 'Silk press', service: 'Silk press shine', key: 'service' },
+        { label: 'Healthy reset', service: 'Treatments', key: 'service' },
+        { label: 'Big chop', service: 'Big Chop', key: 'service' },
+        { label: 'Not sure', service: 'Consultation', key: 'service' },
+      ],
+    },
+    {
+      label: 'Step 2 of 3',
+      question: 'When are you trying?',
+      options: [
+        { label: 'This week', value: 'this-week', key: 'when' },
+        { label: 'Next 2 weeks', value: 'next-2-weeks', key: 'when' },
+        { label: 'A month-ish', value: 'month', key: 'when' },
+        { label: 'Just exploring', value: 'exploring', key: 'when' },
+      ],
+    },
+    {
+      label: 'Step 3 of 3',
+      question: 'How do you want to chat first?',
+      options: [
+        { label: 'Just book', value: 'direct', key: 'mode' },
+        { label: 'DM on Instagram', value: 'ig', key: 'mode' },
+        { label: 'Quick call', value: 'call', key: 'mode' },
+        { label: 'Email questions', value: 'email', key: 'mode' },
+      ],
+    },
+  ];
+
+  let step = 0;
+  const answers = {};
+  let pendingHref = VAGARO_BASE;
+
+  const summary = () => {
+    const bits = [];
+    if (answers.service) bits.push(answers.service);
+    if (answers.when) bits.push(answers.when.replace('-', ' '));
+    if (answers.mode) bits.push(answers.mode);
+    return bits.join(' · ');
+  };
+
+  const renderStep = () => {
+    const s = flow[step];
+    stepLabel.textContent = s.label;
+    questionEl.textContent = s.question;
+    optionsEl.innerHTML = '';
+    s.options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = opt.label;
+      btn.addEventListener('click', () => {
+        answers[opt.key] = opt.service || opt.value;
+        summaryEl.textContent = summary();
+        if (step < flow.length - 1) {
+          step += 1;
+          backBtn.hidden = false;
+          renderStep();
+        } else {
+          finish();
+        }
+      });
+      optionsEl.appendChild(btn);
+    });
+    backBtn.hidden = step === 0;
+  };
+
+  const finish = () => {
+    const params = new URLSearchParams();
+    if (answers.service) params.set('q', answers.service);
+    const href = `${pendingHref}${pendingHref.includes('?') ? '&' : '?'}${params.toString()}`;
+    questionEl.textContent = `Sending you to Vagaro — ${answers.service || 'consultation'}.`;
+    summaryEl.textContent = 'Cinema cut. Enjoy.';
+    optionsEl.innerHTML = '';
+    backBtn.hidden = true;
+    setTimeout(() => {
+      window.open(href, '_blank', 'noopener');
+      close();
+    }, 900);
+  };
+
+  const open = (href) => {
+    pendingHref = href || VAGARO_BASE;
+    step = 0;
+    Object.keys(answers).forEach((k) => delete answers[k]);
+    summaryEl.textContent = ' ';
+    renderStep();
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  };
+
+  const close = () => {
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  };
+
+  closeEls.forEach((el) => el.addEventListener('click', close));
+  backBtn.addEventListener('click', () => { if (step > 0) { step -= 1; renderStep(); } });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+  document.querySelectorAll('[data-booking-interview]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      // Cmd/Ctrl+click should still open the raw link in a new tab.
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) return;
+      event.preventDefault();
+      open(link.getAttribute('href') || VAGARO_BASE);
+    });
+  });
+})();
+
+// ---- #6 Save-this-look share card generator ----
+(() => {
+  const cards = document.querySelectorAll('.reel-card');
+  if (!cards.length) return;
+  cards.forEach((card) => {
+    const btn = card.querySelector('[data-reel-share]');
+    if (!btn) return;
+    btn.addEventListener('click', async (event) => {
+      event.stopPropagation();
+      const preset = card.dataset.reelPreset || 'Cinema';
+      const title = card.querySelector('.reel-copy h3')?.textContent?.replace(/[""]/g, '"') || 'Love Jones Stylez';
+      const subtitle = card.querySelector('.reel-copy p:last-of-type')?.textContent || '';
+      const posterEl = card.querySelector('video');
+      const posterUrl = posterEl?.poster;
+      try {
+        await renderShareCard({ preset, title, subtitle, posterUrl });
+      } catch (err) {
+        console.warn('[share] render failed', err);
+      }
+    });
+  });
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  async function renderShareCard({ preset, title, subtitle, posterUrl }) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1350; // 4:5 — Instagram-native
+    const ctx = canvas.getContext('2d');
+
+    // Base
+    const grad = ctx.createLinearGradient(0, 0, 0, 1350);
+    grad.addColorStop(0, '#0a0505');
+    grad.addColorStop(1, '#1b0d0d');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1080, 1350);
+
+    // Poster cover
+    if (posterUrl) {
+      try {
+        const img = await loadImage(posterUrl);
+        const w = 1080, h = 920;
+        const ratio = Math.max(w / img.width, h / img.height);
+        const dw = img.width * ratio, dh = img.height * ratio;
+        ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
+        // dark fade for legibility
+        const fade = ctx.createLinearGradient(0, 600, 0, 920);
+        fade.addColorStop(0, 'rgba(7,4,4,0)');
+        fade.addColorStop(1, 'rgba(7,4,4,1)');
+        ctx.fillStyle = fade;
+        ctx.fillRect(0, 600, 1080, 320);
+      } catch (_) { /* ignore CORS-blocked images */ }
+    }
+
+    // Preset chip
+    ctx.fillStyle = 'rgba(0,0,0,0.42)';
+    ctx.strokeStyle = 'rgba(248,212,122,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(64, 64, 280, 56, 28);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fff8ef';
+    ctx.font = '700 18px Inter, sans-serif';
+    ctx.fillText('● REC · ' + preset.toUpperCase(), 96, 100);
+
+    // Title
+    ctx.fillStyle = '#fff8ef';
+    ctx.font = 'italic 350 78px Fraunces, Georgia, serif';
+    wrapText(ctx, title, 64, 1040, 960, 86);
+
+    // Subtitle
+    ctx.fillStyle = 'rgba(255,248,239,0.62)';
+    ctx.font = '400 22px Inter, sans-serif';
+    wrapText(ctx, subtitle, 64, 1170, 960, 30);
+
+    // Brand strip
+    ctx.fillStyle = '#f8d47a';
+    ctx.fillRect(64, 1252, 80, 4);
+    ctx.fillStyle = '#fff8ef';
+    ctx.font = '600 22px Inter, sans-serif';
+    ctx.fillText('Love Jones Stylez · Raleigh, NC', 64, 1296);
+
+    const blob = await new Promise((r) => canvas.toBlob(r, 'image/png', 0.92));
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `love-jones-stylez-${preset.toLowerCase().replace(/\s+/g, '-')}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    if ('vibrate' in navigator) try { navigator.vibrate([6, 30, 12]); } catch (_) {}
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = (text || '').split(/\s+/);
+    let line = '';
+    for (let i = 0; i < words.length; i += 1) {
+      const test = line ? `${line} ${words[i]}` : words[i];
+      if (ctx.measureText(test).width > maxWidth && line) {
+        ctx.fillText(line, x, y);
+        line = words[i];
+        y += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line, x, y);
+  }
+})();
