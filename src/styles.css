@@ -2110,7 +2110,12 @@ h2 {
   user-select: none;
 }
 
-/* ---- #5 Drifting review quotes ---- */
+/* ---- #5 Drifting review quotes: live BEHIND main content; only peek through
+        in the negative space between sections, never over a heading. ---- */
+main {
+  position: relative;
+  z-index: 2;
+}
 .reviews-drift {
   position: fixed;
   inset: 0;
@@ -2121,7 +2126,8 @@ h2 {
   transition: opacity 0.8s ease;
 }
 .reviews-drift.is-live {
-  opacity: 1;
+  /* Subtle peripheral whisper, not a distraction. */
+  opacity: 0.45;
 }
 .review-quote {
   position: absolute;

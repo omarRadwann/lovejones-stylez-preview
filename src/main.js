@@ -1660,7 +1660,7 @@ reelSourcesPromise.then((reelSources) => {
   const wrap = document.createElement('div');
   wrap.className = 'cinema-marquee';
   wrap.setAttribute('aria-hidden', 'true');
-  const phrase = '<i>&diams;</i> Premiering &nbsp; <strong>A Love Jones Stylez Cinema Reel</strong> &nbsp; Christina Jones &middot; Raleigh NC &middot; 2026 <i>&diams;</i>';
+  const phrase = '<i>&diams;</i> <strong>Healthy hair care</strong> &middot; Natural stylez &middot; No limitations &middot; <strong>Love Jones Stylez</strong> &middot; Raleigh, NC <i>&diams;</i>';
   wrap.innerHTML = `
     <div class="cinema-marquee-track">
       <span>${phrase}</span>
