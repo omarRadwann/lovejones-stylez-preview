@@ -79,7 +79,7 @@ const renderer = new THREE.WebGLRenderer({
   alpha: false,
   powerPreference: 'high-performance',
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 0.45));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
 renderer.setClearColor(0x070404, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -526,7 +526,7 @@ function resizeRenderer() {
   const bounds = canvas.getBoundingClientRect();
   const renderWidth = Math.max(1, Math.round(bounds.width || innerWidth));
   const renderHeight = Math.max(1, Math.round(bounds.height || innerHeight));
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 0.62 : 0.45));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.0 : 1.25));
   renderer.setSize(renderWidth, renderHeight, false);
   camera.aspect = renderWidth / renderHeight;
   camera.position.z = mobile ? 10.8 : 9.4;
@@ -543,13 +543,29 @@ window.addEventListener('resize', resizeRenderer);
 resizeRenderer();
 
 const pointer = new THREE.Vector2(0, 0);
-window.addEventListener('pointermove', (event) => {
-  wakeScene(1400);
-  pointer.x = (event.clientX / window.innerWidth - 0.5) * 2;
-  pointer.y = (event.clientY / window.innerHeight - 0.5) * 2;
-  document.documentElement.style.setProperty('--spot-x', `${(event.clientX / window.innerWidth) * 100}%`);
-  document.documentElement.style.setProperty('--spot-y', `${(event.clientY / window.innerHeight) * 100}%`);
-});
+// rAF-batched global pointer. Pointer events can fire 250+ Hz on modern mice;
+// we only need updates at display refresh.
+{
+  let px = 0, py = 0, dirty = false, raf = 0;
+  const flush = () => {
+    raf = 0;
+    if (!dirty) return;
+    dirty = false;
+    const w = window.innerWidth, h = window.innerHeight;
+    pointer.x = (px / w - 0.5) * 2;
+    pointer.y = (py / h - 0.5) * 2;
+    const docStyle = document.documentElement.style;
+    docStyle.setProperty('--spot-x', `${(px / w) * 100}%`);
+    docStyle.setProperty('--spot-y', `${(py / h) * 100}%`);
+  };
+  window.addEventListener('pointermove', (event) => {
+    wakeScene(1400);
+    px = event.clientX;
+    py = event.clientY;
+    dirty = true;
+    if (!raf) raf = requestAnimationFrame(flush);
+  }, { passive: true });
+}
 
 const scrollState = { value: 0 };
 const clock = new THREE.Clock();
@@ -559,14 +575,31 @@ function wakeScene(duration = 1200) {
   activeUntil = Math.max(activeUntil, performance.now() + duration);
 }
 
+// Tabs hidden? Pause the loop entirely. (Page Visibility API)
+let pageVisible = !document.hidden;
+document.addEventListener('visibilitychange', () => {
+  pageVisible = !document.hidden;
+  if (pageVisible) wakeScene(900); // catch up immediately on return
+});
+
+// Render in lockstep with the browser's compositor at 60fps.
+// When the scene is "idle" (no recent pointer/scroll), we skip the per-frame
+// scene mutations + draw call but still let rAF run cheaply so we can resume
+// instantly on the next interaction.
 function animate() {
+  requestAnimationFrame(animate);
+  if (!pageVisible) return;
+
   const isActive = performance.now() < activeUntil;
+  if (!isActive) return; // idle: no scene update, no draw
+
   const elapsed = clock.getElapsedTime();
 
-  ribbons.forEach((ribbon, index) => {
+  for (let i = 0; i < ribbons.length; i += 1) {
+    const ribbon = ribbons[i];
     ribbon.material.uniforms.uTime.value = elapsed;
-    ribbon.position.y = ribbon.userData.baseY + Math.sin(elapsed * ribbon.userData.floatSpeed + index) * ribbon.userData.floatAmp;
-  });
+    ribbon.position.y = ribbon.userData.baseY + Math.sin(elapsed * ribbon.userData.floatSpeed + i) * ribbon.userData.floatAmp;
+  }
 
   silkVeil.material.uniforms.uTime.value = elapsed;
   silkVeil.rotation.z = THREE.MathUtils.degToRad(-7 + Math.sin(elapsed * 0.16) * 1.8);
@@ -575,39 +608,47 @@ function animate() {
   sparkField.rotation.x = pointer.y * 0.025;
   sparkField.position.y = scrollState.value * 0.8 + Math.sin(elapsed * 0.2) * 0.08;
 
-  foilGroup.children.forEach((foil) => {
+  const foilChildren = foilGroup.children;
+  for (let i = 0; i < foilChildren.length; i += 1) {
+    const foil = foilChildren[i];
     foil.position.x = foil.userData.baseX + Math.sin(elapsed * foil.userData.drift + foil.userData.phase) * 0.26;
     foil.position.y = foil.userData.baseY + Math.cos(elapsed * foil.userData.drift * 1.4 + foil.userData.phase) * 0.22 + scrollState.value * 0.5;
     foil.rotation.x += foil.userData.spin * 0.008;
     foil.rotation.y += foil.userData.spin * 0.011;
-  });
+  }
 
+  const mobileNow = isMobileViewport();
   portalGroup.rotation.y = THREE.MathUtils.lerp(
     portalGroup.rotation.y,
-    THREE.MathUtils.degToRad((isMobileViewport() ? -12 : -24) + pointer.x * 8 + scrollState.value * 18),
+    THREE.MathUtils.degToRad((mobileNow ? -12 : -24) + pointer.x * 8 + scrollState.value * 18),
     0.035,
   );
   portalGroup.rotation.x = THREE.MathUtils.lerp(portalGroup.rotation.x, THREE.MathUtils.degToRad(-2 - pointer.y * 4), 0.035);
-  portalGroup.position.y = (isMobileViewport() ? -0.04 : 0.02) + Math.sin(elapsed * 0.34) * 0.08 + scrollState.value * 0.28;
+  portalGroup.position.y = (mobileNow ? -0.04 : 0.02) + Math.sin(elapsed * 0.34) * 0.08 + scrollState.value * 0.28;
   portalRing.rotation.z = elapsed * 0.18;
   portalRingInner.rotation.z = -elapsed * 0.14;
   portalGlass.material.opacity = 0.28 + Math.sin(elapsed * 0.9) * 0.04;
   chairGroup.rotation.y = Math.sin(elapsed * 0.48) * 0.16 + pointer.x * 0.08;
-  labelGroup.children.forEach((panel, index) => {
+
+  const labelChildren = labelGroup.children;
+  for (let i = 0; i < labelChildren.length; i += 1) {
+    const panel = labelChildren[i];
     const data = panel.userData;
     const angle = data.angle + elapsed * data.speed + scrollState.value * Math.PI * 1.2;
-    panel.position.set(Math.cos(angle) * data.radius, data.y + Math.sin(elapsed * 0.42 + index) * 0.08, Math.sin(angle) * 0.76 + 0.38);
+    panel.position.set(Math.cos(angle) * data.radius, data.y + Math.sin(elapsed * 0.42 + i) * 0.08, Math.sin(angle) * 0.76 + 0.38);
     panel.rotation.y = -portalGroup.rotation.y + Math.sin(angle) * 0.18;
     panel.rotation.x = -portalGroup.rotation.x * 0.5;
     panel.material.opacity = 0.42 + (Math.sin(angle) + 1) * 0.22;
-  });
+  }
 
-  hairCurveGroup.children.forEach((tube, index) => {
+  const tubeChildren = hairCurveGroup.children;
+  for (let i = 0; i < tubeChildren.length; i += 1) {
+    const tube = tubeChildren[i];
     tube.position.y = tube.userData.baseY + Math.sin(elapsed * tube.userData.speed + tube.userData.phase) * 0.18;
     tube.position.z = tube.userData.baseZ + Math.cos(elapsed * tube.userData.speed * 0.8 + tube.userData.phase) * 0.28;
-    tube.rotation.y = Math.sin(elapsed * 0.16 + index * 0.08) * 0.05 + pointer.x * 0.06;
-    tube.rotation.z = Math.cos(elapsed * 0.12 + index * 0.05) * 0.025;
-  });
+    tube.rotation.y = Math.sin(elapsed * 0.16 + i * 0.08) * 0.05 + pointer.x * 0.06;
+    tube.rotation.z = Math.cos(elapsed * 0.12 + i * 0.05) * 0.025;
+  }
 
   halo.rotation.z = elapsed * 0.11;
   halo.rotation.y = Math.sin(elapsed * 0.24) * 0.15;
@@ -618,10 +659,9 @@ function animate() {
   greenLight.intensity = 9 + Math.sin(elapsed * 0.52) * 1.8;
 
   renderer.render(scene, camera);
-  window.setTimeout(() => requestAnimationFrame(animate), isActive ? 1000 / 18 : 1000 / 3);
 }
 
-animate();
+requestAnimationFrame(animate);
 
 ScrollTrigger.create({
   start: 0,
@@ -755,13 +795,14 @@ gsap.utils.toArray('.gallery-frame img, .cinema-frame img, .story-portrait img, 
 });
 
 gsap.utils.toArray('.service-card, .menu-card, .team-grid article, .policy-grid article, .storyboard article').forEach((card, index) => {
+  // Composited-only reveal (translate + opacity). Avoid `filter: blur()` —
+  // it forces a full-section repaint on every frame of the tween.
   gsap.fromTo(card,
-    { y: 44, rotateX: 4, autoAlpha: 0, filter: 'blur(8px)' },
+    { y: 44, rotateX: 4, autoAlpha: 0 },
     {
       y: 0,
       rotateX: 0,
       autoAlpha: 1,
-      filter: 'blur(0px)',
       duration: 0.9,
       delay: (index % 4) * 0.035,
       ease: 'power3.out',
@@ -808,12 +849,18 @@ const cursor = document.querySelector('.cursor-ring');
 if (cursor && finePointer && !prefersReducedMotion) {
   const moveCursorX = gsap.quickTo(cursor, 'x', { duration: 0.18, ease: 'power3.out' });
   const moveCursorY = gsap.quickTo(cursor, 'y', { duration: 0.18, ease: 'power3.out' });
+  let cursorRevealed = false;
 
   window.addEventListener('pointermove', (event) => {
     moveCursorX(event.clientX);
     moveCursorY(event.clientY);
-    gsap.to(cursor, { autoAlpha: 1, duration: 0.18, overwrite: true });
-  });
+    // Only tween autoAlpha the first time the cursor wakes up — re-tweening
+    // every pointermove was allocating ~200 tweens/sec.
+    if (!cursorRevealed) {
+      cursorRevealed = true;
+      gsap.to(cursor, { autoAlpha: 1, duration: 0.18 });
+    }
+  }, { passive: true });
 
   document.querySelectorAll('a, .service-card, .menu-card, .craft-step, .storyboard article, .team-grid article').forEach((node) => {
     node.addEventListener('pointerenter', () => cursor.classList.add('is-active'));
@@ -823,35 +870,81 @@ if (cursor && finePointer && !prefersReducedMotion) {
 
 const litCards = document.querySelectorAll('.service-card, .menu-card, .team-grid article, .policy-grid article, .storyboard article, .hours-board div');
 litCards.forEach((card) => {
-  card.addEventListener('pointermove', (event) => {
-    const rect = card.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    card.style.setProperty('--mx', `${(x / rect.width) * 100}%`);
-    card.style.setProperty('--my', `${(y / rect.height) * 100}%`);
+  // Persistent quickTo tweens (1 per property per card, re-targeted on each
+  // pointermove). Avoids `gsap.to` allocating + killing a tween every frame.
+  const tiltActive = finePointer && !prefersReducedMotion;
+  const setRotX = tiltActive ? gsap.quickTo(card, 'rotateX', { duration: 0.32, ease: 'power3.out' }) : null;
+  const setRotY = tiltActive ? gsap.quickTo(card, 'rotateY', { duration: 0.32, ease: 'power3.out' }) : null;
+  const setZ    = tiltActive ? gsap.quickTo(card, 'z',       { duration: 0.32, ease: 'power3.out' }) : null;
 
-    if (!finePointer || prefersReducedMotion) return;
-    const rotateX = ((y / rect.height) - 0.5) * -5;
-    const rotateY = ((x / rect.width) - 0.5) * 5;
-    card.classList.add('is-lit');
-    gsap.to(card, { rotateX, rotateY, z: 16, duration: 0.32, ease: 'power3.out', overwrite: true });
+  // Cache rect on enter; getBoundingClientRect is a layout-forcing read.
+  let rect = null;
+  let pending = 0;
+  let lastClientX = 0;
+  let lastClientY = 0;
+
+  const flush = () => {
+    pending = 0;
+    if (!rect) return;
+    const x = lastClientX - rect.left;
+    const y = lastClientY - rect.top;
+    const rx = x / rect.width;
+    const ry = y / rect.height;
+    card.style.setProperty('--mx', `${rx * 100}%`);
+    card.style.setProperty('--my', `${ry * 100}%`);
+    if (tiltActive) {
+      setRotX((ry - 0.5) * -5);
+      setRotY((rx - 0.5) * 5);
+      setZ(16);
+    }
+  };
+
+  card.addEventListener('pointerenter', () => {
+    rect = card.getBoundingClientRect();
+    if (tiltActive) card.classList.add('is-lit');
+  });
+
+  card.addEventListener('pointermove', (event) => {
+    lastClientX = event.clientX;
+    lastClientY = event.clientY;
+    if (!pending) pending = requestAnimationFrame(flush);
   });
 
   card.addEventListener('pointerleave', () => {
+    if (pending) { cancelAnimationFrame(pending); pending = 0; }
+    rect = null;
     card.classList.remove('is-lit');
-    gsap.to(card, { rotateX: 0, rotateY: 0, z: 0, duration: 0.48, ease: 'elastic.out(1, 0.55)', overwrite: true });
+    if (tiltActive) {
+      gsap.to(card, { rotateX: 0, rotateY: 0, z: 0, duration: 0.48, ease: 'elastic.out(1, 0.55)', overwrite: true });
+    }
   });
 });
 
 document.querySelectorAll('[data-magnetic]').forEach((node) => {
-  node.addEventListener('pointermove', (event) => {
-    const rect = node.getBoundingClientRect();
-    const x = event.clientX - rect.left - rect.width / 2;
-    const y = event.clientY - rect.top - rect.height / 2;
-    gsap.to(node, { x: x * 0.14, y: y * 0.18, duration: 0.25, ease: 'power3.out' });
-  });
+  const setX = gsap.quickTo(node, 'x', { duration: 0.25, ease: 'power3.out' });
+  const setY = gsap.quickTo(node, 'y', { duration: 0.25, ease: 'power3.out' });
 
+  let rect = null;
+  let pending = 0;
+  let lastClientX = 0;
+  let lastClientY = 0;
+
+  const flush = () => {
+    pending = 0;
+    if (!rect) return;
+    setX((lastClientX - rect.left - rect.width / 2) * 0.14);
+    setY((lastClientY - rect.top - rect.height / 2) * 0.18);
+  };
+
+  node.addEventListener('pointerenter', () => { rect = node.getBoundingClientRect(); });
+  node.addEventListener('pointermove', (event) => {
+    lastClientX = event.clientX;
+    lastClientY = event.clientY;
+    if (!pending) pending = requestAnimationFrame(flush);
+  });
   node.addEventListener('pointerleave', () => {
+    if (pending) { cancelAnimationFrame(pending); pending = 0; }
+    rect = null;
     gsap.to(node, { x: 0, y: 0, duration: 0.45, ease: 'elastic.out(1, 0.45)' });
   });
 });
