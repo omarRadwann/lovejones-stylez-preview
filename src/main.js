@@ -15,11 +15,14 @@ if (!prefersReducedMotion) {
 }
 
 const lenis = new Lenis({
-  duration: prefersReducedMotion ? 0.01 : 1.34,
+  // Punchier than the previous 1.34 -- long durations after wheel-stop felt
+  // like lag even though they were technically "smooth scroll." 1.05 keeps
+  // the cinematic glide but lets the page catch up to you faster.
+  duration: prefersReducedMotion ? 0.01 : 1.05,
   easing: (t) => Math.min(1, 1.001 - 2 ** (-10 * t)),
   smoothWheel: !prefersReducedMotion,
-  wheelMultiplier: 0.86,
-  touchMultiplier: 1.08,
+  wheelMultiplier: 1.0,
+  touchMultiplier: 1.6,
 });
 
 lenis.on('scroll', ScrollTrigger.update);
@@ -679,6 +682,10 @@ function animate() {
 
 requestAnimationFrame(animate);
 
+// Cache the progress bar element so we don't re-query the DOM on every
+// scroll tick (this runs ~60Hz under Lenis).
+const scrollProgressEl = document.querySelector('.scroll-progress');
+
 ScrollTrigger.create({
   start: 0,
   end: 'max',
@@ -686,7 +693,7 @@ ScrollTrigger.create({
     wakeScene(900);
     const progress = self.progress;
     const mobile = isMobileViewport();
-    document.querySelector('.scroll-progress')?.style.setProperty('transform', `scaleX(${progress})`);
+    if (scrollProgressEl) scrollProgressEl.style.transform = `scaleX(${progress})`;
     scrollState.value = progress;
     ribbons.forEach((ribbon, index) => {
       ribbon.material.uniforms.uScroll.value = Math.sin(progress * Math.PI + index * 0.08) * 0.55;
@@ -1605,4 +1612,75 @@ reelSourcesPromise.then((reelSources) => {
     }
     ctx.fillText(line, x, y);
   }
+})();
+
+/* ============================================================================
+ * MAJESTIC PACK — cinema framing for the pre-Higgsfield state
+ * (Film-edge perforations, "Reel · 01 · 2026" badge, hero marquee, and a
+ * "Coming Attractions" overlay on the reel section while all reels pending.)
+ * Removes itself cleanly once real reels are wired in.
+ * ========================================================================== */
+
+// Film-perforation strips along the very top + bottom of the viewport.
+(() => {
+  const top = document.createElement('div');
+  top.className = 'film-edge film-edge-top';
+  top.setAttribute('aria-hidden', 'true');
+  const bottom = document.createElement('div');
+  bottom.className = 'film-edge film-edge-bottom';
+  bottom.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(top);
+  document.body.appendChild(bottom);
+})();
+
+// Permanent "Reel · 01 · 2026" cinema roll badge.
+(() => {
+  const tag = document.createElement('div');
+  tag.className = 'reel-roll-tag';
+  tag.setAttribute('aria-hidden', 'true');
+  tag.innerHTML = '<span class="reel-roll-dot"></span><span>Reel &middot; 01 &middot; 2026</span>';
+  document.body.appendChild(tag);
+  // Fade in after the loading screen has run (mirrors the loader timing).
+  setTimeout(() => tag.classList.add('is-live'), prefersReducedMotion ? 200 : 1600);
+})();
+
+// Hero marquee — slim ticker at the top of the hero. Two copies of the
+// inner string keep the linear translate seamless (50% loop).
+(() => {
+  const hero = document.querySelector('.hero-section');
+  if (!hero) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'cinema-marquee';
+  wrap.setAttribute('aria-hidden', 'true');
+  const phrase = '<i>&diams;</i> Premiering &nbsp; <strong>A Love Jones Stylez Cinema Reel</strong> &nbsp; Christina Jones &middot; Raleigh NC &middot; 2026 <i>&diams;</i>';
+  wrap.innerHTML = `
+    <div class="cinema-marquee-track">
+      <span>${phrase}</span>
+      <span>${phrase}</span>
+      <span>${phrase}</span>
+      <span>${phrase}</span>
+    </div>
+  `;
+  hero.appendChild(wrap);
+})();
+
+// "Coming Attractions" treatment — applied only while every reel is still
+// pending (no real Higgsfield URL wired yet). Removes itself once any reel
+// transitions out of `is-pending`. Reads as deliberate anticipation rather
+// than empty state.
+(() => {
+  const section = document.querySelector('.reel-section');
+  if (!section) return;
+  const update = () => {
+    const cards = section.querySelectorAll('.reel-card');
+    if (!cards.length) return;
+    const allPending = Array.from(cards).every((c) => c.classList.contains('is-pending'));
+    section.classList.toggle('is-coming-attractions', allPending);
+  };
+  update();
+  // Re-evaluate when any reel-card's class list changes (loading/ready/error).
+  const mo = new MutationObserver(update);
+  section.querySelectorAll('.reel-card').forEach((c) => {
+    mo.observe(c, { attributes: true, attributeFilter: ['class'] });
+  });
 })();

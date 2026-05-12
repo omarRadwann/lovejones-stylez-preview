@@ -54,6 +54,13 @@ html {
   background: var(--ink);
 }
 
+html,
+body {
+  /* Belt + suspenders: kill any horizontal scroll. `clip` is preferable to
+     `hidden` because it doesn't create a scroll container (which would
+     break `position: sticky` further down the tree). */
+  overflow-x: clip;
+}
 body {
   margin: 0;
   min-width: 320px;
@@ -2214,6 +2221,11 @@ h2 {
 .team-carousel {
   margin-top: clamp(48px, 6vw, 72px);
   perspective: 1400px;
+  /* Contain the 3D slots so neighbors don't push the page horizontally. */
+  overflow: hidden;
+  padding: 0 8px;
+  margin-left: -8px;
+  margin-right: -8px;
 }
 .team-stage {
   position: relative;
@@ -2515,6 +2527,17 @@ h2 {
   font-weight: 600;
 }
 
+/* ---- content-visibility: skip rendering / paint / layout for sections
+        that aren't near the viewport. Huge scroll-perf win on long pages.
+        contain-intrinsic-size keeps the scrollbar honest. ---- */
+.policy-section,
+.video-section,
+.visit-section,
+.contact-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 720px;
+}
+
 /* ====================================================================
    MOONSHOT MOBILE FRIENDLINESS — touch, safe areas, viewport-aware sizing
    ==================================================================== */
@@ -2655,5 +2678,191 @@ h2 {
   .booking-card {
     max-height: calc(100dvh - 56px);
     overflow-y: auto;
+  }
+}
+
+/* ====================================================================
+   MAJESTIC PACK — cinema framing that reframes the pre-Higgsfield
+   "empty reels" state as a deliberate pre-release aesthetic.
+   ==================================================================== */
+
+/* Film perforation strips along the very top + bottom of the viewport.
+   Reads as the edge of a 35mm filmstrip. Always present, very subtle. */
+.film-edge {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 14px;
+  pointer-events: none;
+  z-index: 60;
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 22px,
+    rgba(248, 212, 122, 0.22) 22px 28px
+  );
+  opacity: 0.5;
+}
+.film-edge-top { top: 0; }
+.film-edge-bottom { bottom: 0; }
+@media (max-width: 540px) {
+  .film-edge { height: 9px; opacity: 0.4; }
+}
+
+/* "Reel · 01 · 2026" cinema roll badge in the bottom-left corner.
+   A permanent marker that the page is part of a pre-launch reel. */
+.reel-roll-tag {
+  position: fixed;
+  bottom: 22px;
+  left: 22px;
+  z-index: 68;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 12px;
+  border: 1px solid rgba(248, 212, 122, 0.34);
+  border-radius: 999px;
+  background: rgba(7, 4, 4, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: 'Inter', sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ivory);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reel-roll-tag.is-live {
+  opacity: 0.78;
+  transform: translateY(0);
+}
+.reel-roll-tag .reel-roll-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(248, 212, 122, 0.7);
+  animation: reel-roll-pulse 2.4s ease-in-out infinite;
+}
+@keyframes reel-roll-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 1; }
+}
+@media (max-width: 540px) {
+  .reel-roll-tag {
+    bottom: 14px;
+    left: 14px;
+    padding: 6px 11px 6px 9px;
+    font-size: 8.5px;
+    letter-spacing: 0.26em;
+  }
+}
+
+/* Cinema marquee — slim gold-bordered ticker that lives at the top of the
+   hero, scrolling "PREMIERING · CHRISTINA JONES" repeatedly. Frames the
+   empty reel state as intentional anticipation, not pre-launch absence. */
+.cinema-marquee {
+  position: absolute;
+  top: clamp(96px, 11vh, 130px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(880px, calc(100vw - 32px));
+  height: 36px;
+  z-index: 6;
+  border: 1px solid rgba(248, 212, 122, 0.32);
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(7,4,4,0.94) 0%, rgba(7,4,4,0.66) 50%, rgba(7,4,4,0.94) 100%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  pointer-events: none;
+  opacity: 0;
+  animation: marquee-rise 1.2s 0.6s cubic-bezier(0.2, 0.78, 0.16, 1) forwards;
+}
+@keyframes marquee-rise {
+  to { opacity: 1; }
+}
+.cinema-marquee::before,
+.cinema-marquee::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 56px;
+  z-index: 2;
+  pointer-events: none;
+}
+.cinema-marquee::before {
+  left: 0;
+  background: linear-gradient(90deg, rgba(7,4,4,1), transparent);
+}
+.cinema-marquee::after {
+  right: 0;
+  background: linear-gradient(-90deg, rgba(7,4,4,1), transparent);
+}
+.cinema-marquee-track {
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  gap: 32px;
+  padding-left: 32px;
+  white-space: nowrap;
+  animation: marquee-scroll 28s linear infinite;
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--ivory);
+}
+.cinema-marquee-track strong {
+  color: var(--gold);
+  font-weight: 700;
+}
+.cinema-marquee-track i {
+  display: inline-block;
+  font-style: normal;
+  color: var(--gold);
+}
+@keyframes marquee-scroll {
+  to { transform: translateX(-50%); }
+}
+@media (max-width: 720px) {
+  .cinema-marquee {
+    top: clamp(78px, 10vh, 110px);
+    height: 30px;
+    width: calc(100vw - 24px);
+  }
+  .cinema-marquee-track {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    gap: 22px;
+  }
+}
+
+/* "Coming Attractions" treatment over the reel-section heading -- only
+   when all four reels are still in `pending`. Re-frames the empty state
+   as deliberate pre-release marketing. */
+.reel-section.is-coming-attractions .reel-heading::before {
+  content: 'Coming attractions';
+  display: block;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 350;
+  font-size: clamp(0.95rem, 1.3vw, 1.2rem);
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+
+/* Honor reduce-motion for the new cinema animations */
+@media (prefers-reduced-motion: reduce) {
+  .cinema-marquee-track,
+  .reel-roll-tag .reel-roll-dot {
+    animation: none !important;
   }
 }
