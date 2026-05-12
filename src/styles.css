@@ -174,8 +174,10 @@ body.is-loading {
 }
 
 .grain-layer {
-  opacity: 0.08;
-  mix-blend-mode: soft-light;
+  opacity: 0.05;
+  /* No mix-blend-mode -- the previous `overlay` mode was re-blending the entire
+     viewport against the page every frame Lenis scrolled. Visually identical at
+     this opacity without it. */
   background-image:
     repeating-radial-gradient(circle at 18% 26%, rgba(255, 255, 255, 0.34) 0 1px, transparent 1px 7px),
     repeating-radial-gradient(circle at 78% 62%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 9px);
@@ -1909,18 +1911,9 @@ h2 {
   }
 }
 
-/* Subtle film-grain pulse over hero for a more premium feel */
-.grain-layer {
-  mix-blend-mode: overlay;
-  animation: grain-shift 7s linear infinite;
-}
-@keyframes grain-shift {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(-6px, 4px); }
-  50% { transform: translate(4px, -6px); }
-  75% { transform: translate(-3px, -2px); }
-  100% { transform: translate(0, 0); }
-}
+/* Grain duplicate removed -- it was overriding the cheap version above with
+   `mix-blend-mode: overlay` + a 7s infinite transform, forcing a full-viewport
+   composite every frame Lenis scrolled. The cheap version stays. */
 
 /* Hero h1 — let the serif breathe */
 .hero-content h1 {
@@ -2139,9 +2132,9 @@ h2 {
   left: 100%;
   max-width: 320px;
   padding: 14px 18px;
-  background: rgba(7, 4, 4, 0.42);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  /* No backdrop-filter -- 4 of these animating at once was the lag.
+     A flat rgba background composites for free. */
+  background: rgba(7, 4, 4, 0.72);
   border: 1px solid rgba(248, 212, 122, 0.12);
   border-radius: 14px;
   color: var(--ivory);

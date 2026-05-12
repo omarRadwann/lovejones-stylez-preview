@@ -586,13 +586,25 @@ document.addEventListener('visibilitychange', () => {
   if (pageVisible) wakeScene(900); // catch up immediately on return
 });
 
+// Canvas off-screen? Skip the scene entirely. Once you've scrolled past the
+// hero, there's no reason to render WebGL at 60fps -- it's the heaviest thing
+// on the page. IntersectionObserver flips a flag; the loop short-circuits.
+let canvasInView = true;
+{
+  const io = new IntersectionObserver((entries) => {
+    canvasInView = entries[0].isIntersecting;
+    if (canvasInView) wakeScene(900);
+  }, { threshold: 0 });
+  if (canvas) io.observe(canvas);
+}
+
 // Render in lockstep with the browser's compositor at 60fps.
-// When the scene is "idle" (no recent pointer/scroll), we skip the per-frame
-// scene mutations + draw call but still let rAF run cheaply so we can resume
-// instantly on the next interaction.
+// When the scene is "idle" (no recent pointer/scroll) OR offscreen, we skip
+// the per-frame scene mutations + draw call but still let rAF run cheaply so
+// we can resume instantly on the next interaction.
 function animate() {
   requestAnimationFrame(animate);
-  if (!pageVisible) return;
+  if (!pageVisible || !canvasInView) return;
 
   const isActive = performance.now() < activeUntil;
   if (!isActive) return; // idle: no scene update, no draw
@@ -1249,11 +1261,10 @@ reelSourcesPromise.then((reelSources) => {
       const tx = wrapped * 56; // %
       const tz = -Math.abs(wrapped) * 180; // px
       const rotY = wrapped * -14;
-      const opacity = Math.abs(wrapped) >= 2 ? 0 : (wrapped === 0 ? 1 : 0.42);
-      const filter = wrapped === 0 ? 'none' : 'blur(2px) saturate(0.8)';
+      const opacity = Math.abs(wrapped) >= 2 ? 0 : (wrapped === 0 ? 1 : 0.32);
+      // Composited transforms + opacity only -- no `filter: blur()` (paint-heavy).
       slot.style.transform = `translateX(${tx}%) translateZ(${tz}px) rotateY(${rotY}deg)`;
       slot.style.opacity = String(opacity);
-      slot.style.filter = filter;
       slot.classList.toggle('is-current', wrapped === 0);
     });
     dots.forEach((d, i) => d.classList.toggle('is-active', i === index));
