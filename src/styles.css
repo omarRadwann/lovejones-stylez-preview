@@ -1770,23 +1770,13 @@ h2 {
 }
 
 .reel-meta {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  z-index: 4;
-  color: var(--ivory);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.36em;
-  background: rgba(0, 0, 0, 0.32);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 7px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 248, 239, 0.16);
+  /* Hidden: the "● REC · CINEMA STUDIO / SOUL / SEEDANCE / KLING" badge
+     read like a debugging watermark on the cards. The card's own play
+     button + the surrounding cinema framing carry the "this is a film"
+     signal without naming the underlying model. JS still mutates the
+     `.reel-state` text inside (pending/error/ready) -- it just isn't
+     painted to the screen anymore. */
+  display: none;
 }
 
 .reel-dot {
