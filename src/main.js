@@ -1150,14 +1150,22 @@ reelSourcesPromise.then((reelSources) => {
       if (!card.classList.contains('is-ready') && !card.classList.contains('is-playing')) return;
       if (!video.dataset.loaded) return;
       if (video.paused) {
+        // Switching to this card: pause + mute the others, unmute + play this one.
         reelCards.forEach((other) => {
           if (other !== card) {
             const otherVideo = other.querySelector('video');
             otherVideo?.pause();
+            if (otherVideo) otherVideo.muted = true;
             other.classList.remove('is-playing');
           }
         });
+        video.muted = false;
         video.play().then(() => card.classList.add('is-playing')).catch(() => {});
+      } else if (video.muted) {
+        // Already playing but auto-play-muted -- first user tap unmutes
+        // (so the voice-over on the premium Veo 3.1 hero clip is heard)
+        // instead of pausing. Second tap will pause.
+        video.muted = false;
       } else {
         video.pause();
         card.classList.remove('is-playing');
